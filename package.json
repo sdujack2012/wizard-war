@@ -1,0 +1,15 @@
+{
+  "name": "rune-pressure",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RUNE PRESSURE - action + puzzle glyph-casting arena game for Android and iOS",
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs",
+    "dev": "node serve.mjs 5173 --host",
+    "test": "node --test --test-isolation=none test/spells.test.mjs test/game.test.mjs test/browser.test.mjs test/legacy-glyph.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
