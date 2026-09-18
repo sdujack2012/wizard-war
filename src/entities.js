@@ -73,6 +73,7 @@ export function makeEnemy(type, x, y, rng = Math.random) {
 export function makeBolt(x, y, vx, vy, spec, color) {
   return {
     id: newId(),
+    kind: spec.kind ?? 'spark',
     x,
     y,
     vx,
@@ -130,6 +131,11 @@ export function makeRing(x, y, spec, color, kind = 'frost') {
   };
 }
 
+/**
+ * A cosmetic particle.
+ * `shape` selects the sprite ('dot' | 'ember' | 'shard' | 'droplet' | 'mote'),
+ * so a fireball impact does not look identical to a freeze.
+ */
 export function makeParticle(x, y, vx, vy, opts = {}) {
   return {
     x,
@@ -141,6 +147,9 @@ export function makeParticle(x, y, vx, vy, opts = {}) {
     size: opts.size ?? 3,
     color: opts.color ?? '#fff',
     drag: opts.drag ?? 2.4,
+    shape: opts.shape ?? 'dot',
+    angle: opts.angle ?? 0,
+    spin: opts.spin ?? 0,
   };
 }
 

@@ -1,24 +1,59 @@
 /**
  * RUNE PRESSURE - canvas renderer.
  *
- * The only module that touches a 2D context. Everything it needs comes in as
- * plain data (the Game instance plus a small HUD bundle), so it can never
- * mutate game state by accident.
+ * Owns screen layout, the HUD and the wheel. All character and effect art lives
+ * in `sprites.js`; this module decides *where* things go, that one decides what
+ * they look like.
  *
  * It also owns the wheel's screen-space geometry, because that is layout, not
  * gameplay. `Input` hit-tests against `hitWheel()`, so the circles you see are
  * exactly the circles you can press - one source of truth.
  *
  * Performance notes for phones:
- *   - no ctx.shadowBlur (brutally slow on mobile GPUs); glow is faked with two
- *     or three stroked passes at decreasing alpha
- *   - the background gradient is built once per resize, never per frame
- *   - particles are plain circles, capped upstream in the simulation
+ *   - never uses ctx.shadowBlur (brutally slow on mobile GPUs)
+ *   - the detailed arena floor is rendered once into an offscreen canvas and
+ *     blitted, so a rich background costs one drawImage per frame
+ *   - the offscreen cache degrades to a direct draw if the platform refuses one
  */
 
 import { FX, UI, WHEEL, WORLD } from './config.js';
 import { ELEMENTS, ELEMENT_BY_ID, FOCUS_SPELL, SPELLS } from './spells.js';
 import { STATE } from './game.js';
+import {
+  drawArenaFloor,
+  drawBolt,
+  drawBraziers,
+  drawCastLink,
+  drawDangerWash,
+  drawEnemy,
+  drawEnemyBolt,
+  drawMotes,
+  drawParticle,
+  drawRing,
+  drawRitualGlow,
+  drawWizard,
+  makeMotes,
+  visualRadius,
+} from './sprites.js';
+
+/**
+ * Create an offscreen drawing surface, or null if the platform will not give us
+ * one. Callers must handle null by drawing directly.
+ */
+function makeOffscreen(w, h) {
+  try {
+    if (typeof OffscreenCanvas !== 'undefined') return new OffscreenCanvas(w, h);
+    if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      return c;
+    }
+  } catch {
+    /* fall through */
+  }
+  return null;
+}
 
 const PALETTE = {
   bgTop: '#0a0c18',
@@ -159,6 +194,37 @@ export class Renderer {
     v.addColorStop(0, 'rgba(0,0,0,0)');
     v.addColorStop(1, 'rgba(0,0,0,0.55)');
     this.vignette = v;
+
+    this.motes = makeMotes(38, WORLD.w, WORLD.h);
+    this.buildFloor();
+  }
+
+  /**
+   * Pre-render the arena floor once. It is by far the most detailed thing on
+   * screen and none of it changes, so paying for it every frame would be pure
+   * waste - especially on a phone.
+   */
+  buildFloor() {
+    const { s } = this.viewport();
+    const dpr = Math.min(this.dpr, 2);
+    // Cap the cache scale: past ~2x the upload cost outweighs the sharpness.
+    const scale = Math.max(0.5, Math.min(s * dpr, 2));
+    const w = Math.ceil(WORLD.w * scale);
+    const h = Math.ceil(WORLD.h * scale);
+    const surface = makeOffscreen(w, h);
+    if (!surface) {
+      this.floorCanvas = null;
+      return;
+    }
+    const g = surface.getContext('2d');
+    if (!g) {
+      this.floorCanvas = null;
+      return;
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.scale(scale, scale);
+    drawArenaFloor(g, WORLD.w, WORLD.h);
+    this.floorCanvas = surface;
   }
 
   /** Fit the fixed logical arena into the screen, centred (letterboxed). */
@@ -259,10 +325,13 @@ export class Renderer {
     ctx.translate(sx, sy);
 
     const { s, ox, oy } = this.viewport();
+    // Real frame time drives the drifting motes, so they stay in step with the
+    // simulation's slow-motion instead of buzzing through it.
+    const dt = Math.min(hud.dt ?? 1 / 60, 1 / 30);
     ctx.save();
     ctx.translate(ox, oy);
     ctx.scale(s, s);
-    this.drawArena(game, hud);
+    this.drawArena(game, hud, dt);
     this.drawRings(game, false);
     this.drawParticles(game);
     this.drawEnemies(game);
@@ -292,41 +361,53 @@ export class Renderer {
 
   // ── world layers ──────────────────────────────────────────────────────────
 
-  drawArena(game, hud) {
+  /**
+   * The arena: cached stone floor, then the living parts of the ritual circle.
+   * `dt` drives the drifting motes.
+   */
+  drawArena(game, hud, dt = 1 / 60) {
     const ctx = this.ctx;
-    ctx.save();
-    ctx.fillStyle = '#080a14';
-    ctx.fillRect(0, 0, WORLD.w, WORLD.h);
+    const t = game.time;
 
+    ctx.save();
+
+    // Static floor, pre-rendered. Falls back to drawing it directly if the
+    // platform refused us an offscreen surface.
+    if (this.floorCanvas) {
+      ctx.drawImage(this.floorCanvas, 0, 0, WORLD.w, WORLD.h);
+    } else {
+      drawArenaFloor(ctx, WORLD.w, WORLD.h);
+    }
+
+    // How close the run is to falling apart: drives the red wash and the colour
+    // of the circle's light.
+    const danger =
+      game.state === STATE.PLAYING
+        ? Math.max(
+            game.overtimeCount > 0 ? 1 : 0,
+            game.waveTimer < 12 ? 1 - Math.max(0, game.waveTimer) / 12 : 0,
+          )
+        : 0;
+
+    drawRitualGlow(ctx, WORLD.w, WORLD.h, t, danger);
+    drawBraziers(ctx, WORLD.w, WORLD.h, t);
+    if (this.motes) drawMotes(ctx, this.motes, WORLD.w, WORLD.h, dt, t);
+    drawDangerWash(ctx, WORLD.w, WORLD.h, danger);
+
+    // The two-thumb split stays legible, but only just: a whisper of tint over
+    // real art instead of a slab of flat colour.
     const zoneX = WORLD.w * UI.castZoneX;
-    ctx.fillStyle = 'rgba(90,150,255,0.035)';
+    ctx.fillStyle = 'rgba(90,150,255,0.03)';
     ctx.fillRect(zoneX, 0, WORLD.w - zoneX, WORLD.h);
 
-    ctx.strokeStyle = PALETTE.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = 40; x < WORLD.w; x += 40) {
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, WORLD.h);
-    }
-    for (let y = 40; y < WORLD.h; y += 40) {
-      ctx.moveTo(0, y);
-      ctx.lineTo(WORLD.w, y);
-    }
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(140,200,255,0.16)';
-    ctx.setLineDash([9, 11]);
+    ctx.strokeStyle = 'rgba(140,200,255,0.13)';
+    ctx.setLineDash([9, 13]);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(zoneX, 12);
-    ctx.lineTo(zoneX, WORLD.h - 12);
+    ctx.moveTo(zoneX, 26);
+    ctx.lineTo(zoneX, WORLD.h - 26);
     ctx.stroke();
     ctx.setLineDash([]);
-
-    ctx.strokeStyle = PALETTE.border;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, WORLD.w - 2, WORLD.h - 2);
 
     if (hud && hud.hintT > 0) {
       ctx.save();
@@ -335,33 +416,20 @@ export class Renderer {
       ctx.fillStyle = '#8fe3ff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('DRAG HERE TO MOVE', zoneX / 2, 24);
-      ctx.fillText('TAP THE ELEMENTS', zoneX + (WORLD.w - zoneX) / 2, 24);
+      ctx.fillText('DRAG HERE TO MOVE', zoneX / 2, 34);
+      ctx.fillText('TAP THE ELEMENTS', zoneX + (WORLD.w - zoneX) / 2, 34);
       ctx.restore();
     }
     ctx.restore();
   }
 
+  /** Spell and status rings. Blast rings draw over enemies, frost beneath them. */
   drawRings(game, over) {
     const ctx = this.ctx;
     for (const r of game.rings) {
       const isBlast = r.kind === 'nova';
       if (over !== isBlast) continue;
-      const life = Math.max(0, r.ttl / r.maxTtl);
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = r.color;
-      ctx.globalAlpha = 0.2 * life;
-      ctx.lineWidth = isBlast ? 30 : 18;
-      ctx.beginPath();
-      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 0.88 * life;
-      ctx.lineWidth = isBlast ? 4 : 3;
-      ctx.beginPath();
-      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
+      drawRing(ctx, r, game.time);
     }
   }
 
@@ -369,35 +437,15 @@ export class Renderer {
     const ctx = this.ctx;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    for (const p of game.particles) {
-      const a = Math.max(0, p.life / p.maxLife);
-      ctx.globalAlpha = a * 0.9;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * (0.4 + a * 0.6), 0, Math.PI * 2);
-      ctx.fill();
-    }
+    for (const p of game.particles) drawParticle(ctx, p);
     ctx.restore();
   }
 
-  /** Short cosmetic arcs from the caster to the muzzle. */
+  /** Short arcs from the staff to the muzzle as a spell leaves it. */
   drawLinks(game) {
     const ctx = this.ctx;
     if (!game.linkBolts.length) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.lineCap = 'round';
-    for (const l of game.linkBolts) {
-      const a = Math.max(0, l.ttl / l.max);
-      ctx.globalAlpha = a * 0.5;
-      ctx.strokeStyle = l.color;
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.moveTo(l.x1, l.y1);
-      ctx.lineTo(l.x2, l.y2);
-      ctx.stroke();
-    }
-    ctx.restore();
+    for (const l of game.linkBolts) drawCastLink(ctx, l);
   }
 
   drawEnemies(game) {
@@ -416,75 +464,38 @@ export class Renderer {
         ctx.restore();
       }
       ctx.save();
-      ctx.globalAlpha = e.spawnT > 0 ? Math.max(0.15, 1 - e.spawnT / 0.45) : 1;
-      ctx.translate(e.x, e.y);
-      const flash = e.hitFlash > 0;
-      const fill = flash ? '#ffffff' : e.color;
+      ctx.globalAlpha = e.spawnT > 0 ? Math.max(0.2, 1 - e.spawnT / 0.45) : 1;
+      drawEnemy(ctx, e, { time: game.time, px: game.player.x, py: game.player.y });
+      ctx.restore();
 
-      if (e.type === 'shade') {
-        const a = Math.atan2(game.player.y - e.y, game.player.x - e.x);
-        ctx.rotate(a);
-        ctx.fillStyle = fill;
-        ctx.beginPath();
-        ctx.moveTo(e.radius * 1.25, 0);
-        ctx.lineTo(-e.radius * 0.7, -e.radius * 0.95);
-        ctx.lineTo(-e.radius * 0.25, 0);
-        ctx.lineTo(-e.radius * 0.7, e.radius * 0.95);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#0a0a12';
-        ctx.beginPath();
-        ctx.arc(0, 0, e.radius * 0.36, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (e.type === 'wisp') {
-        ctx.fillStyle = fill;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const a = (i / 6) * Math.PI * 2 + e.bob * 0.25;
-          const x = Math.cos(a) * e.radius;
-          const y = Math.sin(a) * e.radius;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#0a0a12';
-        ctx.beginPath();
-        ctx.arc(0, 0, e.radius * 0.42, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = fill;
-        ctx.beginPath();
-        ctx.arc(Math.cos(e.bob) * e.radius * 0.5, Math.sin(e.bob) * e.radius * 0.5, e.radius * 0.3, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        const half = e.radius * 0.88;
-        ctx.fillStyle = fill;
-        roundRect(ctx, -half, -half, half * 2, half * 2, e.radius * 0.28);
-        ctx.fill();
-        ctx.fillStyle = '#0a0a12';
-        roundRect(ctx, -half * 0.5, -half * 0.5, half, half, e.radius * 0.18);
-        ctx.fill();
-      }
+      const vr = visualRadius(e);
 
-      // Chilled or drenched enemies get a visible shell.
-      if (e.slowT > 0) {
-        ctx.globalAlpha = 0.7;
+      // Chilled or drenched enemies get a visible frost shell.
+      if (e.slowT > 0 && e.spawnT <= 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.14;
+        ctx.fillStyle = '#8fe3ff';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, vr + 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.6;
         ctx.strokeStyle = '#8fe3ff';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(0, 0, e.radius + 4, 0, Math.PI * 2);
+        ctx.arc(e.x, e.y, vr + 4, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.restore();
       }
-      ctx.restore();
 
       if (e.hp < e.maxHp - 0.01 && e.spawnT <= 0) {
-        const w = e.radius * 2.2;
+        const w = vr * 1.7;
         const frac = Math.max(0, e.hp / e.maxHp);
+        const by = e.y - vr - 11;
         ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fillRect(e.x - w / 2, e.y - e.radius - 12, w, 3.5);
+        ctx.fillStyle = 'rgba(0,0,0,0.62)';
+        ctx.fillRect(e.x - w / 2 - 1, by - 1, w + 2, 5.5);
         ctx.fillStyle = e.color;
-        ctx.fillRect(e.x - w / 2, e.y - e.radius - 12, w * frac, 3.5);
+        ctx.fillRect(e.x - w / 2, by, w * frac, 3.5);
         ctx.restore();
       }
     }
@@ -493,107 +504,51 @@ export class Renderer {
   drawProjectiles(game) {
     const ctx = this.ctx;
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    for (const b of game.bolts) {
-      const len = b.radius * 2.6;
-      const a = Math.atan2(b.vy, b.vx);
-      ctx.save();
-      ctx.translate(b.x, b.y);
-      ctx.rotate(a);
-      ctx.globalAlpha = 0.3;
-      ctx.fillStyle = b.color;
-      roundRect(ctx, -len, -b.radius * 1.5, len * 2, b.radius * 3, b.radius * 1.4);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      if (b.fat) {
-        ctx.beginPath();
-        ctx.arc(0, 0, b.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.beginPath();
-        ctx.arc(-b.radius * 0.25, -b.radius * 0.25, b.radius * 0.42, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        roundRect(ctx, -len * 0.6, -b.radius * 0.62, len * 1.3, b.radius * 1.24, b.radius * 0.6);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.globalAlpha = 0.85;
-        ctx.beginPath();
-        ctx.arc(len * 0.35, 0, b.radius * 0.42, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-    for (const b of game.ebolts) {
-      ctx.save();
-      ctx.translate(b.x, b.y);
-      ctx.globalAlpha = 0.3;
-      ctx.fillStyle = b.color;
-      ctx.beginPath();
-      ctx.arc(0, 0, b.radius * 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.beginPath();
-      ctx.arc(0, 0, b.radius * 0.85, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
+    for (const b of game.bolts) drawBolt(ctx, b, game.time);
+    for (const b of game.ebolts) drawEnemyBolt(ctx, b, game.time);
     ctx.restore();
   }
 
   drawPlayer(game) {
-    const ctx = this.ctx;
     const p = game.player;
     if (game.state === STATE.GAMEOVER) return;
-    ctx.save();
-    ctx.translate(p.x, p.y);
-
-    if (p.invuln > 0) {
-      ctx.globalAlpha = 0.5 + 0.5 * Math.sin(game.time * 40);
-      ctx.strokeStyle = '#c39bff';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 5]);
-      ctx.beginPath();
-      ctx.arc(0, 0, p.radius + 9, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-    }
-
-    const hurt = p.hurt > 0;
-    const healing = p.healing > 0;
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = hurt ? 0.4 : healing ? 0.34 : 0.16;
-    ctx.fillStyle = hurt ? PALETTE.hp : healing ? '#7bd88f' : '#8fe3ff';
-    ctx.beginPath();
-    ctx.arc(0, 0, p.radius * 2.1, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.globalAlpha = 1;
-
-    ctx.fillStyle = hurt ? PALETTE.hp : '#0d1b2a';
-    ctx.beginPath();
-    ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = hurt ? '#ffffff' : healing ? '#7bd88f' : '#8fe3ff';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    // Facing wedge - drawn along the ACTUAL aim vector, so it shows where an
-    // aimed spell will go (at the nearest enemy), not merely which way you walk.
     const [adx, ady] = game.aimVector();
-    const a = Math.atan2(ady, adx);
-    ctx.save();
-    ctx.rotate(a);
-    ctx.fillStyle = hurt ? '#ffffff' : '#8fe3ff';
-    ctx.beginPath();
-    ctx.moveTo(p.radius + 9, 0);
-    ctx.lineTo(p.radius + 1, -6);
-    ctx.lineTo(p.radius + 1, 6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-    ctx.restore();
+    // The staff flares for a moment after a cast, so the wizard visibly *does*
+    // something even when the spell itself leaves instantly (HEAL).
+    const castFlash = game.lastCast ? Math.min(1, game.lastCast.t / 0.35) : 0;
+    drawWizard(this.ctx, {
+      x: p.x,
+      y: p.y,
+      radius: p.radius,
+      time: game.time,
+      aimAngle: Math.atan2(ady, adx),
+      moveMag: Math.min(1, Math.hypot(game.moveX, game.moveY)),
+      hurt: p.hurt > 0,
+      healing: p.healing > 0,
+      invuln: p.invuln > 0,
+      castFlash,
+    });
+  }
+
+  drawPlayer(game) {
+    const p = game.player;
+    if (game.state === STATE.GAMEOVER) return;
+    const [adx, ady] = game.aimVector();
+    // The staff flares for a moment after a cast, so the wizard visibly *does*
+    // something even when the spell leaves instantly (HEAL).
+    const castFlash = game.lastCast ? Math.min(1, game.lastCast.t / 0.35) : 0;
+    drawWizard(this.ctx, {
+      x: p.x,
+      y: p.y,
+      radius: p.radius,
+      time: game.time,
+      aimAngle: Math.atan2(ady, adx),
+      moveMag: Math.min(1, Math.hypot(game.moveX, game.moveY)),
+      hurt: p.hurt > 0,
+      healing: p.healing > 0,
+      invuln: p.invuln > 0,
+      castFlash,
+    });
   }
 
   drawTexts(game) {
@@ -893,10 +848,20 @@ export class Renderer {
     setFont(ctx, 10, 700);
     ctx.fillStyle = PALETTE.dim;
     ctx.fillText(`BEST ${hud.best ?? 0}`, this.w - pad, pad + 32);
-    if (hud.muted) {
-      ctx.fillStyle = PALETTE.faint;
-      ctx.fillText('MUTED  [M]', this.w - pad, pad + 48);
+
+    // Status flags, stacked so they never overlap.
+    const status = [];
+    if (hud.muted) status.push('MUTED  [M]');
+    if (hud.haptics) {
+      // "NO HAPTICS" is worth saying: iOS Safari has no Vibration API at all, and
+      // a player tapping fruitlessly deserves to know it is the platform, not them.
+      if (!hud.haptics.supported) status.push('NO HAPTICS HERE');
+      else if (!hud.haptics.enabled) status.push('HAPTICS OFF  [V]');
     }
+    status.forEach((label, i) => {
+      ctx.fillStyle = PALETTE.faint;
+      ctx.fillText(label, this.w - pad, pad + 48 + i * 15);
+    });
 
     if (hud.hintT > 0) {
       ctx.globalAlpha = Math.min(1, hud.hintT);

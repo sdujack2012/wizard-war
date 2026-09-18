@@ -267,7 +267,7 @@ export class Game {
         p.healing = 0.6;
         this.stats.heals += 1;
         this.pushText(p.x, p.y - 36, gained > 0 ? `+${gained}` : 'FULL', '#7bd88f', { size: 20, life: 1.0 });
-        this.burst(p.x, p.y, 26, '#7bd88f', 120);
+        this.burst(p.x, p.y, 26, '#7bd88f', 120, 'mote');
         this.rings.push(makeRing(p.x, p.y, { radius: 70, expandSpeed: 190, ttl: 0.6, startR: 10 }, '#7bd88f', 'heal'));
         this.emit({ type: 'heal', amount: gained });
         return;
@@ -285,7 +285,7 @@ export class Game {
         this.shake = Math.max(this.shake, spec.shake);
         this.flashT = 0.16;
         this.flashColor = spellColor;
-        this.burst(p.x, p.y, 44, spellColor, 340);
+        this.burst(p.x, p.y, 44, spellColor, 340, 'ember');
         this.emit({ type: 'explosion' });
         return;
       }
@@ -309,7 +309,7 @@ export class Game {
           ),
         );
         this.shake = Math.max(this.shake, spec.shake);
-        this.burst(p.x, p.y, 22, spellColor, 200);
+        this.burst(p.x, p.y, 22, spellColor, 200, 'shard');
         this.emit({ type: 'freeze' });
         return;
       }
@@ -322,7 +322,7 @@ export class Game {
         );
         this.linkBolts.push({ x1: p.x, y1: p.y, x2: p.x + dx * muzzle, y2: p.y + dy * muzzle, ttl: 0.18, max: 0.18, color: spellColor });
         this.shake = Math.max(this.shake, 5);
-        this.burst(p.x + dx * muzzle, p.y + dy * muzzle, 12, spellColor, 160);
+        this.burst(p.x + dx * muzzle, p.y + dy * muzzle, 12, spellColor, 160, spec.kind === 'waterball' ? 'droplet' : 'ember');
         this.emit({ type: 'projectile', spell: spell.id });
       }
     }
@@ -670,10 +670,10 @@ export class Game {
             knockback: 120,
             knockbackFrom: { x: b.x, y: b.y },
           });
-          this.burst(b.x, b.y, 18, b.color, 220);
+          this.burst(b.x, b.y, 18, b.color, 220, 'ember');
           this.shake = Math.max(this.shake, 6);
         } else {
-          this.burst(b.x, b.y, 7, b.color, 150);
+          this.burst(b.x, b.y, 7, b.color, 150, b.kind === 'waterball' ? 'droplet' : b.kind === 'fireball' ? 'ember' : 'dot');
         }
         consumed = true;
         break;
@@ -693,7 +693,7 @@ export class Game {
       }
       if (circleOverlap(b.x, b.y, b.radius, p.x, p.y, p.radius)) {
         if (p.invuln <= 0) this.damagePlayer(b.damage, 'bolt');
-        this.burst(b.x, b.y, 8, b.color, 160);
+        this.burst(b.x, b.y, 8, b.color, 160, 'dot');
         this.ebolts.splice(i, 1);
       }
     }
@@ -738,6 +738,7 @@ export class Game {
       q.vy *= drag;
       q.x += q.vx * dt;
       q.y += q.vy * dt;
+      if (q.spin) q.angle += q.spin * dt;
     }
     for (let i = this.texts.length - 1; i >= 0; i--) {
       const t = this.texts[i];
@@ -800,7 +801,7 @@ export class Game {
       if (idx >= 0) this.enemies.splice(idx, 1);
       this.stats.kills += 1;
       this.score += e.score;
-      this.burst(e.x, e.y, 18, e.color, 190);
+      this.burst(e.x, e.y, 18, e.color, 190, 'dot');
       this.pushText(e.x, e.y - e.radius, `+${e.score}`, e.color, { size: 14, life: 0.7 });
       this.emit({ type: 'kill', enemy: e.type, score: e.score });
     }
@@ -827,7 +828,7 @@ export class Game {
     this.shake = 26;
     this.flashT = 0.4;
     this.flashColor = '#ff4d6d';
-    this.burst(this.player.x, this.player.y, 60, '#8fe3ff', 300);
+    this.burst(this.player.x, this.player.y, 60, '#8fe3ff', 300, 'mote');
     this.emit({ type: 'death', source, wave: this.wave, score: this.score });
   }
 
@@ -835,7 +836,12 @@ export class Game {
     this.texts.push(makeText(x, y, text, color, opts));
   }
 
-  burst(x, y, count, color, speed) {
+  /**
+   * Cosmetic particle spray.
+   * `shape` picks the sprite so each element leaves its own fingerprint: embers
+   * for fire, splinters for ice, droplets for water, motes for healing.
+   */
+  burst(x, y, count, color, speed, shape = 'dot') {
     for (let i = 0; i < count; i++) {
       const a = this.fxRng() * Math.PI * 2;
       const s = speed * (0.35 + this.fxRng() * 0.85);
@@ -844,6 +850,9 @@ export class Game {
           life: 0.32 + this.fxRng() * 0.5,
           size: 1.6 + this.fxRng() * 3.4,
           color,
+          shape,
+          angle: this.fxRng() * Math.PI * 2,
+          spin: (this.fxRng() - 0.5) * 12,
         }),
       );
     }

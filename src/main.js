@@ -8,10 +8,12 @@
 
 import { Audio } from './audio.js';
 import { Game, STATE } from './game.js';
+import { Haptics } from './haptics.js';
 import { Input } from './input.js';
 import { Renderer } from './render.js';
 
 const BEST_KEY = 'rune-pressure.best';
+const HAPTICS_KEY = 'rune-pressure.haptics';
 
 function loadBest() {
   try {
@@ -29,10 +31,34 @@ function persistBest(value) {
   }
 }
 
+/** Returns the stored flag, or null when the player has never chosen. */
+function loadFlag(key) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw === null ? null : raw === '1';
+  } catch {
+    return null;
+  }
+}
+
+function persistFlag(key, value) {
+  try {
+    window.localStorage.setItem(key, value ? '1' : '0');
+  } catch {
+    /* a lost preference is not worth failing over */
+  }
+}
+
 export async function boot(canvas) {
   const renderer = new Renderer(canvas);
   const game = new Game();
   const audio = new Audio();
+  const haptics = new Haptics();
+
+  // A stored preference wins over the config default, so a player who turned
+  // haptics off does not get buzzed again on their next visit.
+  const storedHaptics = loadFlag(HAPTICS_KEY);
+  if (storedHaptics !== null) haptics.enabled = storedHaptics;
 
   let best = loadBest();
   let hintT = 8;
@@ -48,6 +74,13 @@ export async function boot(canvas) {
     },
   });
   input.onToggleMute = () => audio.toggleMute();
+  input.onToggleHaptics = () => {
+    const on = haptics.toggle();
+    persistFlag(HAPTICS_KEY, on);
+    // Immediate confirmation, so the player can feel that it worked.
+    if (on) haptics.playNow('tick');
+    return on;
+  };
   input.attach();
 
   const onResize = () => renderer.resize();
@@ -59,6 +92,12 @@ export async function boot(canvas) {
 
   function handleEvents(events) {
     for (const ev of events) {
+      // Haptics ride the same event stream as audio, so a cue and a tick always
+      // agree about what just happened. Drivers receive the cue name, letting a
+      // native backend map to its own impact styles rather than imitating a
+      // millisecond pattern.
+      haptics.playForEvent(ev);
+
       switch (ev.type) {
         case 'element':
           audio.play('element', { element: ev.element, index: ev.index });
@@ -130,7 +169,9 @@ export async function boot(canvas) {
       best,
       hintT,
       muted: audio.muted,
+      haptics: { enabled: haptics.enabled, supported: haptics.supported },
       lastRecognised: input.lastRecognised,
+      dt,
     });
   }
 
@@ -146,7 +187,13 @@ export async function boot(canvas) {
   });
 
   // Draw the title screen immediately rather than after the first RAF tick.
-  renderer.render(game, { ...input.hudState(), best, hintT, muted: audio.muted });
+  renderer.render(game, {
+    ...input.hudState(),
+    best,
+    hintT,
+    muted: audio.muted,
+    haptics: { enabled: haptics.enabled, supported: haptics.supported },
+  });
   raf = window.requestAnimationFrame(frame);
 
   const api = {
@@ -154,6 +201,7 @@ export async function boot(canvas) {
     renderer,
     input,
     audio,
+    haptics,
     stop() {
       window.cancelAnimationFrame(raf);
       input.detach();

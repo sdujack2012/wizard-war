@@ -225,6 +225,7 @@ export class Input {
     }
     if (key === 'x') this.game.clearSequence();
     if (key === 'm') this.onToggleMute?.();
+    if (key === 'v') this.onToggleHaptics?.();
     this.recomputeKeys();
   }
 

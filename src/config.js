@@ -88,6 +88,45 @@ export const SEQUENCE = {
   breakFlashDur: 0.35,
 };
 
+/**
+ * Haptic feedback.
+ *
+ * The wheel is a rhythm control you operate while watching the arena, so a tap
+ * has to confirm itself through the thumb rather than the eye. Durations are
+ * short on purpose: a 3-tap recipe fires three separate ticks, and anything
+ * longer smears them into one buzz.
+ *
+ * `ms` is a single duration, or an on/off pattern like [30, 25, 60].
+ * `cooldown` (seconds) is the minimum gap between repeats of that cue, which is
+ * what keeps a fast combo feeling like three taps instead of one long rumble.
+ *
+ * NOTE: `navigator.vibrate` exists on Android browsers and does NOT exist on
+ * iOS Safari at all. See src/haptics.js for the native-shell path.
+ */
+export const HAPTICS = {
+  enabledByDefault: true,
+  /** Duration multiplier. 0.5 is subtle, 1 authored, 1.4 emphatic. */
+  strength: 1,
+  cues: {
+    // ── the wheel ──────────────────────────────────────────────────────────
+    tick: { ms: 11, cooldown: 0.026 }, // element accepted
+    spark: { ms: 8, cooldown: 0.03 }, // centre circle: lighter than an element
+    break: { ms: [26, 42, 26], cooldown: 0.14 }, // wrong tap: a double thud
+    fizzle: { ms: [8, 32, 8, 32, 8], cooldown: 0.24 }, // not enough mana: a dud
+    castLight: { ms: 18, cooldown: 0.05 }, // heal
+    castMed: { ms: 30, cooldown: 0.06 }, // fireball, waterball
+    castHeavy: { ms: [36, 24, 62], cooldown: 0.1 }, // explosion, freeze
+    // ── the fight ──────────────────────────────────────────────────────────
+    kill: { ms: 12, cooldown: 0.04 },
+    hit: { ms: [22, 14, 34], cooldown: 0.12 },
+    // ── the run ────────────────────────────────────────────────────────────
+    waveStart: { ms: [12, 45, 22], cooldown: 0.5 },
+    waveClear: { ms: [12, 40, 12, 40, 34], cooldown: 0.6 },
+    overtime: { ms: [46, 52, 46, 52, 46], cooldown: 0.7 },
+    death: { ms: [95, 50, 180], cooldown: 1 },
+  },
+};
+
 export const WAVE = {
   firstDelay: 1.6,
   intermission: 3.6,
