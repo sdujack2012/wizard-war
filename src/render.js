@@ -20,6 +20,7 @@ import { ART, FX, MOTION, PLAYER, SEQUENCE, STROKE, TRAIL, UI, WHEEL, WORLD } fr
 import { ELEMENTS, ELEMENT_BY_ID, FOCUS_SPELL, SPELLS, SPELL_BY_ID, chargedSparkCost } from './spells.js';
 import { STATE } from './game.js';
 import { makeSurface, posesFor } from './assets.js';
+import { mulberry32 } from './rng.js';
 import {
   drawArenaFloor,
   drawBolt,
@@ -53,6 +54,15 @@ import {
  * to be darker than it is.
  */
 /** Particle shapes that are opaque matter rather than light. */
+/**
+ * The seed the mote field and its respawn stream are built from.
+ *
+ * Named rather than inlined because TWO streams use it - the motes' own, built inside
+ * `makeMotes`, and the renderer's, which only serves the x a wrapped mote reappears at
+ * - and the port has to agree with both.
+ */
+const MOTE_SEED = 99;
+
 const OPAQUE_PARTICLES = new Set(['dust', 'smoke', 'vapour', 'mote']);
 
 /**
@@ -277,7 +287,11 @@ export class Renderer {
     v.addColorStop(1, 'rgba(58,42,24,0.22)');
     this.vignette = v;
 
-    this.motes = makeMotes(38, WORLD.w, WORLD.h);
+    // A SECOND stream, seeded from the same constant as the motes themselves, for the
+    // one place the mote field is random after construction: the x a mote reappears at
+    // when it drifts off the top. See `drawMotes`.
+    this.moteRng = mulberry32(MOTE_SEED);
+    this.motes = makeMotes(38, WORLD.w, WORLD.h, MOTE_SEED);
     this.buildFloor();
   }
 
@@ -1032,7 +1046,7 @@ export class Renderer {
     // The painted brazier is the bowl; the vector pass on top is its firelight,
     // which keeps the corners alive and costs two translucent discs each.
     this.drawBraziers(t);
-    if (this.motes) drawMotes(ctx, this.motes, WORLD.w, WORLD.h, dt, t);
+    if (this.motes) drawMotes(ctx, this.motes, WORLD.w, WORLD.h, dt, t, this.moteRng);
     drawDangerWash(ctx, WORLD.w, WORLD.h, danger);
     // Scorch and frost sit ON the floor, under everything that moves: they are
     // last in the arena pass so the danger wash cannot tint them.

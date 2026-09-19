@@ -490,7 +490,17 @@ export function makeMotes(count, w, h, seed = 99) {
   return motes;
 }
 
-export function drawMotes(ctx, motes, w, h, dt, time) {
+/**
+ * Drifting dust.
+ *
+ * `rng` is INJECTABLE, and it is the only reason this signature has one. A mote
+ * that drifts off the top reappears at a random x, and `Math.random()` makes a
+ * rendered frame different every time - which is fine for a player and impossible
+ * for a port whose frame is compared against this one's, pixel for pixel. The
+ * renderer owns a seeded stream and passes it in; the default keeps every other
+ * caller (and the visual behaviour) exactly as it was.
+ */
+export function drawMotes(ctx, motes, w, h, dt, time, rng = Math.random) {
   ctx.save();
   // Dust on a bright floor: a soft grey-blue speck rather than a glow, which
   // would be invisible against pale stone.
@@ -499,7 +509,7 @@ export function drawMotes(ctx, motes, w, h, dt, time) {
     m.x += m.vx * dt + Math.sin(time * 0.7 + m.phase) * 0.35;
     if (m.y < -8) {
       m.y = h + 8;
-      m.x = Math.random() * w;
+      m.x = rng() * w;
     }
     if (m.x < -8) m.x = w + 8;
     if (m.x > w + 8) m.x = -8;
