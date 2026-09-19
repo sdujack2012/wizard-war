@@ -1,0 +1,8 @@
+[
+  {
+    "id": "wizard-walk-strip",
+    "ref": "/tmp/art3/raw-wizard.png",
+    "out": "/tmp/art3/raw-wizard-strip.png",
+    "prompt": "Image 1: an anime cel-shaded mage in a blue and white robe with gold trim, holding a tall staff with a glowing cyan crystal, standing in a neutral idle pose, seen from a fixed three-quarter top-down view.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same character, showing a three-frame walk cycle in a single row, left to right, evenly spaced, all three figures the SAME height, the SAME scale, the SAME camera angle, standing on the SAME invisible baseline, with clear empty gaps between them so each frame can be cut out. Frame 1 (left): neutral contact pose, feet together, exactly like Image 1. Frame 2 (middle): mid-stride with the left leg forward and the free arm swung forward. Frame 3 (right): mid-stride with the right leg forward and the free arm swung back. The staff stays gripped in the same hand at the same angle in all three frames.\n\nKeep identical: costume, colours, the 2px dark ink outline, flat cel shading, the single upper-left key light, the glowing cyan staff crystal, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  }
+]

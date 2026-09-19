@@ -1,0 +1,31 @@
+# Deploy: the game as a static site behind the existing Traefik gateway.
+#
+# Why this shape:
+#   - `user: "1000:1000"` is load-bearing. /services is mode 750, so a stock
+#     nginx container (uid 101) cannot traverse into the repo and would serve
+#     403 for everything. Running as the owning uid is what makes the bind mount
+#     work, and it means the container has no more access than the repo's owner.
+#   - nginx-unprivileged listens on 8080 and keeps its temp files in /tmp, which
+#     is what lets it run as a non-root user at all.
+#   - The repo is mounted read-only: this container can never modify the game.
+#   - TLS is Traefik's, via the Cloudflare DNS-01 resolver that already issues the
+#     other *.sdujack2012.win certificates. There is no certificate config here.
+#
+# Bring it up:   docker compose up -d
+# Take it down:  docker compose down
+services:
+  game:
+    image: nginxinc/nginx-unprivileged:alpine
+    container_name: wizard-war-game
+    restart: unless-stopped
+    user: "1000:1000"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.wizard-war.rule: Host(`game.sdujack2012.win`)
+      traefik.http.routers.wizard-war.entrypoints: websecure
+      traefik.http.routers.wizard-war.tls: "true"
+      traefik.http.routers.wizard-war.tls.certresolver: letsencrypt
+      traefik.http.services.wizard-war.loadbalancer.server.port: "8080"

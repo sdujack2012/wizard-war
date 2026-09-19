@@ -1,0 +1,8 @@
+{
+  "source_seconds": 113.26,
+  "loop_seconds": 110.263,
+  "crossfade_seconds": 3.0,
+  "seam_jump": 0.014374,
+  "mean_step": 0.020587,
+  "target_lufs": -16.0
+}

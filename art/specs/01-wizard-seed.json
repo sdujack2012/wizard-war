@@ -1,0 +1,17 @@
+[
+  {
+    "id": "floor-v2",
+    "model": "gpt-image-2.5-flare",
+    "size": "1536x1024",
+    "out": "/tmp/art3/raw-floor.png",
+    "prompt": "ROLE/PURPOSE: environment playfield for a fixed top-down arena game; the background every character and projectile is read against.\nSUBJECT: an empty circular duelling ground of pale weathered flagstone.\nVIEW: directly overhead, orthographic top-down, no perspective, no horizon.\nART DIRECTION: cel-shaded anime; LOW CHROMA pale stone (value 68-80 percent, saturation under 15 percent); NO ink outlines on the stone; flat 2-tone shading only; the vivid saturated colour belongs to the characters and spells drawn on top, so the floor must not compete with them.\nGAME-SCALE READ: at 1280x720 this whole image sits behind 45-80 pixel tall characters. It must read as quiet, even, walkable ground. It must NOT draw the eye.\nTECHNICAL OUTPUT: 3:2 landscape, opaque, edge-to-edge surface, no transparency.\nLOCKS: pale cool-grey and cream stone, muted sage moss in the seams, flat even lighting from upper-left, no hotspots.\nEXCLUDE: glowing magic circles, neon runes, bright inlaid sigils, gemstones, braziers, torches, fire, any light source, any character or creature, focal detail in the central 60 percent of the frame, strong shadows, high-contrast cracks, text, labels, UI, borders, frames, vignette."
+  },
+  {
+    "id": "wizard-seed",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "background": "transparent",
+    "out": "/tmp/art3/raw-wizard.png",
+    "prompt": "ROLE/PURPOSE: player character seed asset for a fixed top-down arena game; the single approved visual target the rest of the cast is built from.\nSUBJECT: a young mage standing in a neutral idle pose, holding a staff in one hand, feet together on the ground.\nVIEW: fixed three-quarter view from above (camera roughly 55 degrees above the horizon), body facing the viewer, standing upright, symmetrical stance, no lean, no motion.\nART DIRECTION: cel-shaded anime; FLAT 2-3 tone shading, hard terminator between light and shadow, single key light from upper-left, cool ambient fill; 2px dark desaturated indigo ink outline around the whole silhouette only (no interior line noise); saturated royal blue and white robe with gold trim; glowing cyan staff crystal as the single brightest accent in the image.\nGAME-SCALE READ: the whole figure is drawn 64 pixels tall on screen. Silhouette priority, in order: the hood, the staff and its crystal above the shoulder line, the robe hem flare. These must stay separated from the body mass and must not merge at 64 pixels.\nTECHNICAL OUTPUT: square, TRANSPARENT background (real alpha channel), single isolated figure, centred, with a small even margin on all four sides, whole body inside the frame including feet.\nLOCKS: three-quarter top-down camera, upright stance, blue/white/gold palette, ink outline weight, upper-left key light.\nEXCLUDE: cast shadows on the ground, ground plane, scenery, props, second characters, text, labels, UI, frames, mockup chrome, watermark, signature, cropped or cut-off limbs, motion blur, dramatic pose."
+  }
+]

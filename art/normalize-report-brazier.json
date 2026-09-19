@@ -1,0 +1,38 @@
+{
+  "canvas": [
+    252,
+    320
+  ],
+  "anchor": "mass",
+  "body_h": 300,
+  "body_frac": 0.9375,
+  "top_y": 16,
+  "ground_y": 316,
+  "frames": {
+    "brazier": {
+      "source_columns": [
+        0,
+        1023
+      ],
+      "source_content_x": [
+        228,
+        803
+      ],
+      "source_body_h": 867,
+      "scale": 0.346021,
+      "placement": [
+        3,
+        -10
+      ],
+      "content_y": [
+        16,
+        316
+      ],
+      "bytes": 86315,
+      "canvas": [
+        252,
+        320
+      ]
+    }
+  }
+}

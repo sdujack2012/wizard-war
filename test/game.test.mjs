@@ -8,7 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Game, STATE } from '../src/game.js';
-import { SEQUENCE, TIME, WAVE, waveComposition } from '../src/config.js';
+import { CHARGE, DECAL, SEQUENCE, TIME, WAVE, waveComposition } from '../src/config.js';
 import { FOCUS_SPELL, SPELLS, SPELL_BY_ID, spellSpec } from '../src/spells.js';
 import { makeEnemy, norm2 } from '../src/entities.js';
 import { mulberry32 } from '../src/rng.js';
@@ -228,14 +228,31 @@ test('SPARK falls back to your facing when nothing is alive', () => {
   assert.ok(g.bolts[0].vy < 0, 'SPARK should follow the facing wedge with no target');
 });
 
-test('SPARK clears a partial recipe - the panic button', () => {
+test('a SPARK tap leaves a partial recipe alone - the centre is not a trap', () => {
   const g = arena();
   g.tapElement('water');
   g.tapElement('water');
   assert.equal(g.sequence.length, 2);
   g.tapFocus();
-  assert.equal(g.sequence.length, 0, 'the centre circle should abandon the recipe');
+  // The wheel's hit circles tile their disc almost exactly, so the shortest path
+  // between two opposite elements crosses the centre. Losing the recipe to a
+  // thumb that clipped the middle punished the geometry, not the player.
+  assert.equal(g.sequence.length, 2, 'a quick centre tap must not cost the recipe');
   assert.equal(g.stats.breaks, 0, 'and forgive it');
+  assert.equal(g.stats.sparks, 1, 'while still firing the panic shot');
+});
+
+test('a committed wind-up spends the recipe', () => {
+  const g = arena();
+  g.tapElement('water');
+  g.tapElement('water');
+  assert.equal(g.sequence.length, 2);
+  assert.equal(g.beginCharge().ok, true);
+  step(g, CHARGE.tapTime + 0.06);
+  const r = g.releaseCharge();
+  assert.equal(r.ok, true);
+  assert.ok(r.charge > 0, 'held past tapTime, so this must be a charged shot');
+  assert.equal(g.sequence.length, 0, 'committing the wind-up replaces the recipe');
 });
 
 test('SPARK has a cooldown and costs mana', () => {
@@ -252,6 +269,160 @@ test('SPARK has a cooldown and costs mana', () => {
     g.player.mana < 100 - FOCUS_SPELL.cost,
     `two sparks were not charged (mana ${g.player.mana})`,
   );
+});
+
+// ── the charged centre circle ────────────────────────────────────────────────
+
+/** Press the centre, hold for `seconds` of real time, then let go. */
+function holdFocus(g, seconds) {
+  const began = g.beginCharge();
+  if (!began.ok) return began;
+  step(g, seconds);
+  return g.releaseCharge();
+}
+
+test('holding the centre circle fires a bigger shot, and bills for it', () => {
+  const g = arena();
+  const res = holdFocus(g, CHARGE.time);
+  assert.equal(res.ok, true, `the release failed: ${res.reason}`);
+  assert.equal(g.bolts.length, 1);
+
+  const full = spellSpec('spark');
+  const shot = g.bolts[0];
+  const speedOf = (b) => Math.hypot(b.vx, b.vy);
+  assert.ok(shot.damage > full.damage * 4, `a full charge only did ${shot.damage}`);
+  assert.ok(shot.radius > full.radius, 'the charged shot should look bigger');
+  assert.ok(speedOf(shot) > full.speed, 'the charged shot should fly faster');
+  assert.equal(shot.knockback, CHARGE.knockback);
+  assert.equal(res.cost, CHARGE.cost);
+  assert.equal(g.stats.charged, 1);
+  assert.equal(g.stats.sparks, 1, 'a charged shot is still a SPARK');
+});
+
+test('a tap on the centre circle is exactly the old SPARK', () => {
+  // The panic button has to stay predictable: same damage, same price, same
+  // cooldown as before the charge existed.
+  const g = arena();
+  const res = g.tapFocus();
+  assert.equal(res.ok, true);
+  const shot = g.bolts[0];
+  const base = spellSpec('spark');
+  assert.equal(shot.damage, base.damage);
+  assert.equal(shot.radius, base.radius);
+  assert.equal(Math.hypot(shot.vx, shot.vy), base.speed);
+  assert.equal(shot.knockback, 0);
+  assert.equal(res.cost, FOCUS_SPELL.cost);
+  assert.equal(g.player.mana, 100 - FOCUS_SPELL.cost, 'a tap must not pay a charge price');
+  assert.equal(g.sparkCd, SEQUENCE.sparkCooldown, 'a tap must not serve a charge cooldown');
+  assert.equal(g.stats.charged, 0);
+});
+
+test('the longer the hold, the harder the shot - up to the cap', () => {
+  let previous = 0;
+  for (const held of [0.25, 0.45, 0.7, CHARGE.time, CHARGE.time * 3]) {
+    const g = arena();
+    const res = holdFocus(g, held);
+    assert.equal(res.ok, true, `release failed at ${held}s: ${res.reason}`);
+    const shot = g.bolts[0];
+    assert.ok(shot.damage >= previous, `holding ${held}s hit softer than the shorter hold`);
+    previous = shot.damage;
+  }
+  // Past full charge the shot stops growing: no reward for holding forever.
+  const maxed = arena();
+  holdFocus(maxed, CHARGE.time * 3);
+  const exact = arena();
+  holdFocus(exact, CHARGE.time);
+  assert.equal(maxed.bolts[0].damage, exact.bolts[0].damage);
+  assert.equal(maxed.player.mana, exact.player.mana);
+});
+
+test('the wind-up runs on the thumb\'s clock, not the simulation\'s', () => {
+  // Slow motion and the hit-stop freeze must not stretch or stall a charge: the
+  // player is holding a thumb down in the real world, and the release has to
+  // answer to that, not to the frame rate the spell flourish is running at.
+  const slow = arena();
+  slow.resolveSlow = 1e9; // pin the world into slow motion
+  slow.beginCharge();
+  step(slow, 0.5);
+  assert.ok(Math.abs(slow.charge - 0.5) < 0.02, `slow motion stretched the charge to ${slow.charge}s`);
+
+  const stopped = arena();
+  stopped.hitStop = 1e9; // pin the world on an impact frame
+  stopped.beginCharge();
+  step(stopped, 0.3);
+  assert.ok(Math.abs(stopped.charge - 0.3) < 0.02, `a hit-stop froze the charge at ${stopped.charge}s`);
+});
+
+test('an abandoned wind-up fires nothing', () => {
+  const g = arena();
+  g.beginCharge();
+  step(g, CHARGE.time);
+  assert.equal(g.cancelCharge(), true);
+  assert.equal(g.charging, false);
+  assert.equal(g.bolts.length, 0, 'a cancelled charge must not throw a shot');
+  assert.equal(g.player.mana, 100, 'and must not bill for one');
+
+  // Releasing without a wind-up in flight is likewise a no-op.
+  assert.equal(g.releaseCharge().reason, 'not-charging');
+  assert.equal(g.bolts.length, 0);
+});
+
+test('a second wind-up cannot start on top of the first', () => {
+  const g = arena();
+  assert.equal(g.beginCharge().ok, true);
+  assert.equal(g.beginCharge().reason, 'charging');
+  step(g, CHARGE.time);
+  assert.equal(g.sparkCd, 0, 'nothing has been spent yet');
+
+  g.releaseCharge();
+  assert.equal(g.beginCharge().reason, 'cooldown', 'the release cooldown must gate the next wind-up');
+});
+
+test('an unaffordable full charge fizzles instead of firing for free', () => {
+  const g = arena();
+  g.beginCharge();
+  step(g, CHARGE.time);
+  // Priced at release, so the mana that matters is the mana you have when you
+  // let go - set it after the hold, where regeneration cannot muddy the reading.
+  g.player.mana = 20; // enough for a tap, not for a full wind-up
+  const res = g.releaseCharge();
+  assert.equal(res.ok, false);
+  assert.equal(res.reason, 'mana');
+  assert.equal(g.bolts.length, 0);
+  assert.equal(g.player.mana, 20, 'a fizzle must not charge you');
+  assert.equal(g.stats.fizzles, 1);
+  assert.ok(g.seqLock > 0);
+  assert.equal(g.charging, false, 'the wind-up must not survive a fizzle');
+});
+
+test('a full wind-up serves a longer cooldown than a tap', () => {
+  const tap = arena();
+  tap.tapFocus();
+  const charged = arena();
+  holdFocus(charged, CHARGE.time);
+  assert.ok(
+    charged.sparkCd > tap.sparkCd,
+    `a full charge (${charged.sparkCd}s) is as spammable as a tap (${tap.sparkCd}s)`,
+  );
+});
+
+test('the full-charge tell fires once, not every frame', () => {
+  const g = arena();
+  g.beginCharge();
+  g.drainEvents();
+  step(g, CHARGE.time * 3);
+  const fulls = g.drainEvents().filter((e) => e.type === 'charge-full');
+  assert.equal(fulls.length, 1, `charge-full fired ${fulls.length} times`);
+});
+
+test('a wind-up cannot outlive the run', () => {
+  const g = arena();
+  g.beginCharge();
+  step(g, 0.4);
+  g.startRun(); // a fresh run (death and retry) resets the world
+  assert.equal(g.charging, false);
+  assert.equal(g.charge, 0);
+  assert.equal(g.releaseCharge().reason, 'not-charging');
 });
 
 test('every aimed spell auto-targets, even while strafing', () => {
@@ -401,6 +572,118 @@ test('an unaffordable SPARK fizzles rather than firing for free', () => {
   assert.equal(g.stats.fizzles, 1);
 });
 
+// ── movement detail: the walk cycle, and the marks spells leave ──────────────
+
+test('the walk cycle is driven by ground covered, not by the clock', () => {
+  // The bug this replaces: enemies stepped at a fixed rate (`bob += dt * 4`) no
+  // matter how fast they were actually moving, so a creature pinned against a
+  // wall kept walking on the spot and a shoved one skated without stepping.
+  const still = arena();
+  step(still, 1.0);
+  assert.equal(still.player.gait, 0, 'the mage walked while standing still');
+
+  const walking = arena();
+  walking.setMove(1, 0);
+  step(walking, 0.5);
+  assert.ok(walking.player.gait > 0, 'the mage did not take a step while walking');
+
+  // Distance per stride must hold: gait is strides, so half the time is half the
+  // strides at the same speed.
+  const far = arena();
+  far.setMove(1, 0);
+  step(far, 1.0);
+  const near = arena();
+  near.setMove(1, 0);
+  step(near, 0.5);
+  assert.ok(
+    Math.abs(far.player.gait - near.player.gait * 2) < 0.05,
+    `strides are not proportional to distance (${far.player.gait} vs ${near.player.gait * 2})`,
+  );
+});
+
+test('a creature jammed against a wall stops moving its feet', () => {
+  const g = arena();
+  g.player.x = g.world.w - g.player.radius; // flush against the east wall
+  g.setMove(1, 0);
+  step(g, 0.4);
+  const pinned = g.player.gait;
+  step(g, 0.4);
+  assert.ok(
+    Math.abs(g.player.gait - pinned) < 0.01,
+    `the mage kept walking into the wall (gait ${g.player.gait} from ${pinned})`,
+  );
+});
+
+test('walking kicks up dust at the feet, and standing still does not', () => {
+  const g = arena();
+  g.setMove(1, 0);
+  step(g, 0.6);
+  const dust = g.particles.filter((p) => p.shape === 'dust');
+  assert.ok(dust.length > 0, 'walking produced no footfall dust');
+  assert.ok(dust.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y)));
+
+  const still = arena();
+  step(still, 1.2);
+  assert.equal(
+    still.particles.filter((p) => p.shape === 'dust').length,
+    0,
+    'standing still kicked up dust',
+  );
+});
+
+test('enemies get a walk cycle too, and it stops when they are shoved to a halt', () => {
+  const g = arena();
+  const e = putEnemy(g, 'shade', 260, 0);
+  step(g, 0.5);
+  assert.ok(e.gait > 0, 'the wraith never took a step while closing in');
+  assert.ok(e.speedNow > 0, 'no travel was measured');
+});
+
+test('an explosion leaves a scorch that damages nothing and fades on its own', () => {
+  const g = arena();
+  tapAll(g, SPELL_BY_ID.explosion.sequence);
+  assert.equal(g.stats.casts, 1, 'EXPLOSION did not cast');
+  const decals = g.decals.filter((d) => d.kind === 'scorch');
+  assert.equal(decals.length, 1, `expected one scorch, got ${decals.length}`);
+
+  // Inert by construction: an after-effect must never become a balance change.
+  const spec = spellSpec('explosion');
+  for (const key of ['damage', 'slow', 'stun', 'radius']) {
+    assert.equal(decals[0][key], undefined, `the scorch carries a ${key} field`);
+  }
+
+  const enemy = putEnemy(g, 'brute', 60, 0);
+  const hp = enemy.hp;
+  step(g, 1.0); // stand in the scorch for a second
+  assert.equal(enemy.hp, hp, 'the scorch damaged something');
+
+  step(g, DECAL.explosion.ttl);
+  assert.equal(g.decals.length, 0, 'the scorch never faded');
+});
+
+test('a freeze leaves frost, and every damaging ring resolves the same way', () => {
+  const g = arena();
+  tapAll(g, SPELL_BY_ID.freeze.sequence);
+  assert.equal(g.stats.casts, 1, 'FREEZE did not cast');
+  assert.equal(g.decals.filter((d) => d.kind === 'frost').length, 1, 'no frost was left');
+
+  // The new layered rings must not have changed what the spells actually do:
+  // FREEZE still slows and still damages exactly what it slowed before.
+  const near = putEnemy(g, 'shade', 60, 0);
+  const far = putEnemy(g, 'shade', 400, 0);
+  const farHp = far.hp;
+  step(g, 0.35);
+  assert.ok(near.slowT > 0, 'the frost wave did not slow a nearby enemy');
+  assert.equal(far.hp, farHp, 'the frost wave reached an enemy it should not have');
+});
+
+test('decals are capped, so a long run cannot accumulate them forever', () => {
+  const g = arena();
+  for (let i = 0; i < 60; i++) g.addDecal(100 + i, 100, 'scorch', 90, 30, '#ffb03d');
+  assert.ok(g.decals.length <= DECAL.max, `decals grew to ${g.decals.length}`);
+  assert.equal(g.decals.length, DECAL.max);
+});
+
 test('dead players cannot cast', () => {
   const g = arena();
   g.player.hp = 3;
@@ -476,10 +759,16 @@ test('losing all HP ends the run and freezes the simulation', () => {
 
 // ── robustness ───────────────────────────────────────────────────────────────
 
-test('the title screen ticks safely with no player or enemies in play', () => {
+test('the front screens tick safely with no player or enemies in play', () => {
   const g = new Game();
   step(g, 2);
+  assert.equal(g.state, STATE.SPLASH, 'the game boots to the splash');
+  assertFiniteWorld(g);
+  // The splash takes exactly one press, and dismisses to the title.
+  assert.equal(g.dismissSplash(), true);
   assert.equal(g.state, STATE.TITLE);
+  assert.equal(g.dismissSplash(), false, 'dismissing twice must not walk back off the title');
+  step(g, 2);
   assertFiniteWorld(g);
 });
 
@@ -572,4 +861,117 @@ test('the cast flourish slows the world but never the wave clock', () => {
     Math.abs(10 - g.waveTimer - TIME.maxFrame) < 1e-9,
     `the wave clock must ignore it (drifted ${10 - g.waveTimer})`,
   );
+});
+
+// ── cast confirmation: the circles light in the order they were pressed ───────
+
+test('a cast records which circles made it, in order', () => {
+  const g = arena();
+  g.player.mana = 100;
+  g.tapElement('earth');
+  g.tapElement('fire');
+  g.tapElement('water');
+  assert.equal(g.stats.casts, 1, 'EARTH+FIRE+WATER should cast EXPLOSION');
+  assert.deepEqual(g.castGlow.seq, ['earth', 'fire', 'water']);
+  assert.equal(g.castGlow.t, 0, 'the glow starts at the cast');
+});
+
+test('a doubled recipe keeps its duplicate, so FIRE lights twice', () => {
+  const g = arena();
+  g.player.mana = 100;
+  g.tapElement('fire');
+  g.tapElement('fire');
+  g.tapElement('wind');
+  assert.equal(g.stats.casts, 1);
+  // Collapsing this to a set would light FIRE once and lose the order, which is
+  // the only place the game confirms the sequence rather than the ingredients.
+  assert.deepEqual(g.castGlow.seq, ['fire', 'fire', 'wind']);
+});
+
+test('the glow expires on its own', () => {
+  const g = arena();
+  g.player.mana = 100;
+  g.tapElement('fire');
+  g.tapElement('fire');
+  g.tapElement('wind');
+  assert.ok(g.castGlow, 'lit at the cast');
+  const life = SEQUENCE.castGlowDur + 2 * SEQUENCE.castGlowStagger;
+  step(g, life + 0.1);
+  assert.equal(g.castGlow, null, 'and goes out by itself');
+});
+
+test('SPARK lights the centre circle', () => {
+  const g = arena();
+  g.tapFocus();
+  assert.deepEqual(g.castGlow.seq, ['focus'], 'the panic shot gets a confirmation too');
+});
+
+test('a cast that never happened lights nothing', () => {
+  const g = arena();
+  g.player.mana = 0;
+  g.tapElement('fire');
+  g.tapElement('fire');
+  g.tapElement('wind');
+  assert.equal(g.stats.casts, 0, 'no mana, no explosion');
+  assert.equal(g.castGlow, null, 'and nothing to confirm');
+});
+
+test('the glow runs on the spell\'s clock, not the thumb\'s', () => {
+  // It is advanced inside the resolution, so slow motion slows the confirmation
+  // with the effect it is confirming rather than leaving it stranded in real time.
+  const g = arena();
+  g.player.mana = 100;
+  g.tapElement('earth');
+  g.tapElement('fire');
+  g.tapElement('water');
+  assert.equal(g.resolveSlow > 0, true, 'a cast triggers the resolving beat');
+  // Wait out the impact freeze first, by hand: the glow deliberately holds still
+  // through it, so measuring inside the freeze would only prove it is frozen.
+  let guard = 0;
+  while (g.hitStop > 0 && guard++ < 200) g.update(1 / 60);
+  assert.ok(g.resolveSlow > 0, 'still resolving after the freeze');
+
+  const before = g.castGlow.t;
+  step(g, 0.05);
+  const scaled = g.castGlow.t - before;
+  assert.ok(scaled > 0 && scaled < 0.05, `expected slow motion, advanced ${scaled} of 0.05`);
+});
+
+// ── aimed shots must never spawn past the thing they are aimed at ────────────
+
+test('an enemy in contact range is not immune to aimed fire', () => {
+  // The muzzle offset exists so a bolt does not appear inside the wizard, but it
+  // must not carry the bolt PAST its target. An enemy within it used to be
+  // completely immune to SPARK - and since melee enemies always close to
+  // contact, that silently disabled the panic button on the one enemy that most
+  // needs shooting. Found by porting the simulation to Godot.
+  for (const start of [0.5, 2, 5, 10, 15, 20, 25, 40]) {
+    const g = arena();
+    g.player.maxHp = 1e6;
+    g.player.hp = 1e6;
+    const e = makeEnemy('shade', g.player.x + start, g.player.y, mulberry32(2));
+    e.spawnT = 0;
+    g.enemies.push(e);
+    const hp0 = e.hp;
+    for (let i = 0; i < 240; i++) {
+      if (i % 30 === 0) g.tapFocus();
+      g.update(1 / 60);
+    }
+    assert.ok(e.hp < hp0, `an enemy starting ${start}px away took no damage at all`);
+  }
+});
+
+test('the muzzle still keeps a bolt out of the caster when there is room', () => {
+  const g = arena();
+  const e = makeEnemy('shade', g.player.x + 400, g.player.y, mulberry32(3));
+  e.spawnT = 0;
+  g.enemies.push(e);
+  assert.equal(g.muzzleFor(36), 36, 'a distant target should not shrink the muzzle');
+  g.enemies.length = 0;
+  assert.equal(g.muzzleFor(36), 36, 'nor should an empty arena');
+  // In contact, the muzzle collapses so the bolt still starts on the near side.
+  const close = makeEnemy('shade', g.player.x + 4, g.player.y, mulberry32(4));
+  close.spawnT = 0;
+  g.enemies.push(close);
+  assert.ok(g.muzzleFor(36) < 4, 'a target closer than the muzzle must pull it in');
 });

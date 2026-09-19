@@ -1,0 +1,10 @@
+[
+  {
+    "id": "qstyle-brute-strip-v2",
+    "ref": "/tmp/qstyle/raw-brute.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/qstyle/raw-brute-strip2.png",
+    "prompt": "Image 1: a Q-style super-deformed chibi heavy brute - a chunky squat armoured ogre with a big round barrel body in overlapping scorched orange-bronze plates over grey stone, a small grumpy head with two little tusks sunk between two enormous rounded shoulder plates, huge chunky fists, and two very short stubby legs with big flat feet. Thick dark ink outline, flat 2-tone cel shading, single upper-left key light, fixed three-quarter top-down view.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same creature, showing a three-frame heavy waddle walk cycle in a single row, left to right, evenly spaced, all three the SAME height, the SAME width, the SAME chibi proportions, the SAME camera angle, standing on the SAME invisible baseline, with WIDE, COMPLETELY EMPTY vertical gaps between them so each frame can be cut out cleanly. IMPORTANT: the three figures must NOT touch or overlap each other anywhere - leave a clear empty gap at least half a character wide between one figure's edge and the next figure's edge, including between their arms and shoulder plates. Nothing may bridge the gaps. Frame 1 (left): neutral contact pose, both feet planted wide, exactly like Image 1. Frame 2 (middle): mid-step with the LEFT stubby leg lifted and swung forward, the body rolling onto the right leg, the whole body tilted and bounced slightly taller. Frame 3 (right): mid-step with the RIGHT stubby leg lifted and swung forward, the body rolling onto the left leg, tilted the other way and squashed slightly shorter and wider.\n\nKeep identical: the orange-bronze armour, the grey stone, the riveted plates, the small tusked head, the enormous shoulders, the thick ink outline weight, the flat cel shading, the single upper-left key light, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  }
+]

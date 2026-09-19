@@ -1,0 +1,10 @@
+[
+  {
+    "id": "shade-walk-strip-v2",
+    "ref": "/tmp/art3/raw-shade2.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/art3/raw-shade2-strip.png",
+    "prompt": "Image 1: an anime cel-shaded crimson hooded wraith with BOTH arms spread wide, long spread claws, a tattered cloak flaring horizontally outward into torn streamers on both sides, and a ragged torn hem - about as wide as it is tall, with a 2px dark indigo ink outline, flat cel shading and a single upper-left key light.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same creature, showing three animation frames in a single row, left to right, evenly spaced, all three figures the SAME height and the SAME width, the SAME camera angle, hovering on the SAME invisible baseline, with clear empty gaps between them so each frame can be cut out. It has no legs, so this is a hover cycle, not a walk. Frame 1 (left): neutral hover with both arms spread wide and level, exactly like Image 1. Frame 2 (middle): the left arm swept higher and the right arm lower, the cloak streamers on the left streaming upward, the whole shape tilted as if banking to one side. Frame 3 (right): the right arm swept higher and the left arm lower, the cloak streamers on the right streaming upward, the shape banking the other way.\n\nCRITICAL: every frame must be ABOUT AS WIDE AS IT IS TALL, just like Image 1. Do not draw any frame tall and narrow. Keep the arms and cloak streamers spread wide in all three frames.\n\nKeep identical: the crimson and burgundy colours, the bone-white trim, the glowing eyes, the 2px ink outline weight, the flat cel shading, the single upper-left key light, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  }
+]

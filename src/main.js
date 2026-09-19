@@ -6,6 +6,7 @@
  * reacts to simulation events with sound.
  */
 
+import { AssetStore } from './assets.js';
 import { Audio } from './audio.js';
 import { Game, STATE } from './game.js';
 import { Haptics } from './haptics.js';
@@ -50,10 +51,15 @@ function persistFlag(key, value) {
 }
 
 export async function boot(canvas) {
-  const renderer = new Renderer(canvas);
+  // The painted art loads in the background and is never awaited: the title
+  // screen is up in the first frame either way, and every draw path has a vector
+  // fallback until the bitmaps arrive (or forever, if they never do).
+  const assets = new AssetStore();
+  const renderer = new Renderer(canvas, assets);
   const game = new Game();
   const audio = new Audio();
   const haptics = new Haptics();
+  assets.load();
 
   // A stored preference wins over the config default, so a player who turned
   // haptics off does not get buzzed again on their next visit.
@@ -107,7 +113,16 @@ export async function boot(canvas) {
           audio.play(ev.spell);
           break;
         case 'spark':
-          audio.play('spark');
+          // `charge` (0..1) lets the shot sound as heavy as it is.
+          audio.play('spark', { charge: ev.charge ?? 0 });
+          break;
+        case 'charge-full':
+          audio.play('chargeFull');
+          break;
+        case 'spell-hit':
+          // A projectile landing. Fire, water and ice each land differently, so
+          // a hit is recognisable with your eyes on the other side of the arena.
+          audio.play(ev.spell === 'waterball' ? 'hitWater' : ev.spell === 'fireball' ? 'hitFire' : 'hitIce');
           break;
         case 'sequence-break':
           audio.play('break');

@@ -1,0 +1,10 @@
+[
+  {
+    "id": "qstyle-wizard-strip",
+    "ref": "/tmp/qstyle/raw-wizard.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/qstyle/raw-wizard-strip.png",
+    "prompt": "Image 1: a Q-style super-deformed chibi mage, about two and a half heads tall with an enormous head and huge round eyes, in a blue and white robe with gold trim and an oversized floppy hood, holding a tall staff with a glowing cyan crystal, seen from a fixed three-quarter top-down view, with a thick dark ink outline and flat cel shading.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same character, showing a three-frame waddle walk cycle in a single row, left to right, evenly spaced, all three figures the SAME height, the SAME width, the SAME chibi proportions, the SAME camera angle, standing on the SAME invisible baseline, with clear empty gaps between them so each frame can be cut out. Frame 1 (left): neutral contact pose, feet together, exactly like Image 1. Frame 2 (middle): mid-step with the LEFT stubby leg swung forward and the free arm swung forward, the body bounced slightly taller. Frame 3 (right): mid-step with the RIGHT stubby leg swung forward and the free arm swung back, the body squashed slightly shorter and wider.\n\nKEEP THE CHIBI PROPORTIONS IN ALL THREE FRAMES: enormous head, huge eyes, short stubby limbs. Do not draw any frame with realistic or tall proportions, and do not let the head get smaller.\n\nThe staff stays gripped in the same hand at the same angle in all three frames.\n\nKeep identical: costume, colours, the thick ink outline weight, the flat cel shading, the single upper-left key light, the glowing cyan staff crystal, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  }
+]

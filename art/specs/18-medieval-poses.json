@@ -1,0 +1,10 @@
+[
+  {
+    "id": "medieval-wizard-strip",
+    "ref": "/tmp/medieval/raw-wizard.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/medieval/raw-wizard-strip.png",
+    "prompt": "Image 1: a Q-style super-deformed chibi medieval hedge-wizard, about two and a half heads tall with an enormous head and huge round eyes, wearing a deep heraldic blue hooded wool cloak with cream linen lining over a cream tunic, a brown leather belt with a pouch and an iron key, brown leather boots, holding a rough hand-carved wooden staff with iron bands topped by a glowing amber crystal. Thick dark ink outline, flat cel shading, fixed three-quarter top-down view, transparent background.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same character, showing a three-frame waddle walk cycle in a single row, left to right, evenly spaced, all three figures the SAME height, the SAME width, the SAME chibi proportions, the SAME camera angle, standing on the SAME invisible baseline, with WIDE COMPLETELY EMPTY vertical gaps between them so each frame can be cut out cleanly. The three figures must NOT touch or overlap each other anywhere - leave a clear empty gap at least half a character wide between one figure and the next, including between the staff of one and the body of the next.\n\nFrame 1 (left): neutral contact pose, feet together, exactly like Image 1. Frame 2 (middle): mid-step with the LEFT stubby leg swung forward and the free arm swung forward, the body bounced slightly taller. Frame 3 (right): mid-step with the RIGHT stubby leg swung forward and the free arm swung back, the body squashed slightly shorter and wider.\n\nKEEP THE CHIBI PROPORTIONS IN ALL THREE FRAMES: enormous head, huge eyes, short stubby limbs. The staff stays gripped in the same hand at the same angle in all three frames.\n\nKeep identical: costume, colours, the thick ink outline weight, the flat cel shading, the single upper-left key light, the glowing amber staff crystal, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  }
+]

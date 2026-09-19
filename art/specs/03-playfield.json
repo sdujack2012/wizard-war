@@ -1,0 +1,9 @@
+[
+  {
+    "id": "floor-v3",
+    "model": "gpt-image-2.5-flare",
+    "size": "1536x1024",
+    "out": "/tmp/art3/raw-floor-v3.png",
+    "prompt": "ROLE/PURPOSE: environment playfield for a fixed top-down arena game; the background every character and projectile is read against.\nSUBJECT: an empty circular duelling ground of pale weathered flagstone, with an inscribed ritual circle CUT INTO the stone.\nVIEW: directly overhead, orthographic top-down, no perspective, no horizon.\nART DIRECTION: cel-shaded anime; LOW CHROMA pale stone (value 68-80 percent, saturation under 15 percent); NO ink outlines on the stone; flat 2-tone shading only. The ritual circle is a TONAL STONE INLAY only - engraved grooves and slightly darker and lighter slabs, roughly 8-14 percent darker than the surrounding stone, with NO glow, NO colour, NO light emission. The vivid saturated colour in this game belongs to the characters and spells drawn on top, so the floor must not compete with them.\nGAME-SCALE READ: at 1280x720 this whole image sits behind 45-80 pixel tall characters. It must read as quiet, even, walkable ground. It must NOT draw the eye.\nTECHNICAL OUTPUT: 3:2 landscape, opaque, edge-to-edge surface, no transparency.\nLOCKS: pale cool-grey and cream stone, muted sage moss in the seams, flat even lighting from upper-left, no hotspots, concentric ring layout centred in frame.\nEXCLUDE: glowing lines, neon runes, luminous sigils, gemstones, braziers, torches, fire, any light source, any character or creature, strong cast shadows, high-contrast cracks, text, labels, UI, borders, frames, vignette."
+  }
+]

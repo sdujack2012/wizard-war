@@ -1,0 +1,357 @@
+{
+  "schema_version": 1,
+  "project": "rune-pressure",
+  "art_direction_brief": "docs/art-direction-brief.md",
+  "generation_record": "docs/asset-prompts.md",
+  "generated_with": {
+    "tool": "OpenAI Images API",
+    "model": "gpt-image-2.5-flare",
+    "endpoints": [
+      "POST https://api.openai.com/v1/images/generations",
+      "POST https://api.openai.com/v1/images/edits"
+    ]
+  },
+  "rights_review": {
+    "status": "outstanding",
+    "note": "Model-generated is not a licence. Commercial terms for the OpenAI outputs and the YuE2 model used for assets/bgm.mp3 have NOT been reviewed by a human. Treat every asset below as pending that review. See docs/asset-prompts.md#rights.",
+    "license_name_and_version": "unresolved \u2014 OpenAI terms of use, current version at review time",
+    "license_url": "https://openai.com/policies/terms-of-use/",
+    "restrictions_known": "unverified; in particular whether shipping raw editable outputs in a public repository is permitted",
+    "content_credentials": "stripped by resize and re-encode; this manifest is the retention record"
+  },
+  "technical_frame": {
+    "rule": "one shared canvas per creature, so drawPainted's aspect-derived width cannot drift between poses",
+    "canvas": "all creatures 320 px tall; the figure occupies 0.9375 of that",
+    "body_h": 300,
+    "ground_y": 316,
+    "anchor": "head-run centroid for the staff-carrying wizard; area centroid for everything else",
+    "filtering": "smooth (bilinear) \u2014 not pixel art",
+    "normalizer": "tools/normalize-sprites.py",
+    "measured_geometry": [
+      "art/normalize-report.json",
+      "art/normalize-report-shade.json",
+      "art/normalize-report-brute.json",
+      "art/normalize-report-wisp.json",
+      "art/normalize-report-brazier.json"
+    ],
+    "reproducible": "re-running the normalizer straight into assets/ is byte-identical",
+    "player_canvas": "wizard 338x320, shade 272x320, brute 341x320 \u2014 one canvas per creature",
+    "proportion": "Q-style chibi (~2.5 heads); medieval European costume and world"
+  },
+  "assets": [
+    {
+      "id": "player-idle",
+      "role": "player - chibi hedge-wizard: heraldic blue wool cloak, leather belt, amber-crystal quarterstaff",
+      "path": "assets/wizard.png",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "338x320 per pose (all poses of a creature share one canvas)",
+        "alpha": true,
+        "anchor": "body-centre on the ground line",
+        "poses": 3
+      },
+      "visual_locks": [
+        "palette",
+        "silhouette",
+        "proportions",
+        "ink-outline",
+        "light-direction",
+        "camera"
+      ],
+      "source": {
+        "kind": "generated",
+        "tool": "gpt-image-2.5-flare (Images API, generations)",
+        "created_at": "2026-09-19",
+        "raw_source": "art/raw/medieval-wizard.png",
+        "prompt_record": "art/specs/16-medieval-target.json",
+        "style_pass": "Q-style chibi, medieval"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "qa": "asset_report.py ok, no problems"
+      },
+      "measurements": {
+        "bytes": 138219
+      }
+    },
+    {
+      "id": "player-walk",
+      "role": "player step poses, cross-faded against each other while moving",
+      "path": "assets/wizard-b.png, assets/wizard-c.png",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "338x320 per pose (all poses of a creature share one canvas)",
+        "alpha": true,
+        "poses": 2
+      },
+      "source": {
+        "kind": "generated",
+        "tool": "gpt-image-2.5-flare (Images API, edits, referenced to the seed)",
+        "created_at": "2026-09-19",
+        "raw_source": "art/raw/medieval-wizard-strip.png",
+        "prompt_record": "art/specs/18-medieval-poses.json",
+        "style_pass": "Q-style chibi, medieval"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "qa": "asset_report.py ok, no problems"
+      },
+      "measurements": {
+        "bytes": [
+          145294,
+          135369
+        ]
+      }
+    },
+    {
+      "id": "playfield",
+      "role": "arena - medieval castle courtyard: concentric cobbles around a carved heraldic roundel",
+      "path": "assets/floor.webp",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "1920x1080 (3:2 source centre-cropped to 16:9)",
+        "alpha": false,
+        "anchor": "world rect 960x540",
+        "frames": 1
+      },
+      "visual_locks": [
+        "value-band",
+        "chroma-ceiling",
+        "light-direction",
+        "no-outline"
+      ],
+      "source": {
+        "raw_source": "art/raw/medieval-floor.png",
+        "prompt_record": "art/specs/20-medieval-floor.json",
+        "derivation": "centre-cropped 3:2 to 16:9 and corrected to the playfield gate by tools/prepare-floor.py: the model returned mean 110 / 28% saturation against a 180-205 / <=18 / <=14% gate, so a linear levels lift (gain 1.29, offset +44.1) plus a saturation pull was solved and measured, not eyeballed"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true
+      },
+      "measurements": {
+        "dimensions": "1920x1080",
+        "bytes": 291216,
+        "central_mean": 185.5,
+        "central_std": 18.0,
+        "saturation_pct": 14.0,
+        "gate": "mean 180-205, std <=18, sat <=14% - PASS"
+      }
+    },
+    {
+      "id": "enemy-shade",
+      "role": "enemy - cowled revenant in tattered rust-crimson wool, hovering",
+      "path": "assets/shade.png, assets/shade-b.png, assets/shade-c.png",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "272x320 per pose (all poses of a creature share one canvas)",
+        "alpha": true,
+        "poses": 3
+      },
+      "visual_locks": [
+        "palette",
+        "ink-outline",
+        "light-direction",
+        "camera",
+        "silhouette-aspect"
+      ],
+      "source": {
+        "kind": "generated",
+        "tool": "gpt-image-2.5-flare (Images API, edits, referenced to the seed)",
+        "created_at": "2026-09-19",
+        "raw_source": "art/raw/medieval-shade.png, art/raw/medieval-shade-strip.png",
+        "prompt_record": "art/specs/17-medieval-cast.json, art/specs/19-medieval-cast-strips.json",
+        "rejected_attempt": "The first shade brief asked for a TALL NARROW taper. Drawn at 51 px that became a 26 px-wide smudge where the art it replaced was a 45 px-wide creature, so the silhouette was re-briefed as a wide spread shape. See docs/asset-prompts.md.",
+        "style_pass": "Q-style chibi, medieval"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "qa": "asset_report.py ok, no problems"
+      },
+      "measurements": {
+        "bytes": [
+          123471,
+          124429,
+          124117
+        ]
+      }
+    },
+    {
+      "id": "enemy-wisp",
+      "role": "enemy - will-o'-the-wisp: violet marsh flame in a broken iron hoop",
+      "path": "assets/wisp.png",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "276x320 per pose (all poses of a creature share one canvas)",
+        "alpha": true,
+        "poses": 1
+      },
+      "visual_locks": [
+        "palette",
+        "ink-outline",
+        "emissive-only-core",
+        "silhouette-aspect"
+      ],
+      "source": {
+        "kind": "generated",
+        "tool": "gpt-image-2.5-flare (Images API, edits, referenced to the seed)",
+        "created_at": "2026-09-19",
+        "raw_source": "art/raw/medieval-wisp.png",
+        "prompt_record": "art/specs/17-medieval-cast.json",
+        "rejected_attempt": "The first wisp drew orbiting shards above and below the flame, which stretched the total height and shrank the body once scaled. The v2 brief keeps everything inside the body's width.",
+        "style_pass": "Q-style chibi, medieval"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "qa": "asset_report.py ok, no problems"
+      },
+      "measurements": {
+        "bytes": 114563
+      }
+    },
+    {
+      "id": "enemy-brute",
+      "role": "enemy - man-at-arms in scorched plate with a crimson surcoat",
+      "path": "assets/brute.png, assets/brute-b.png, assets/brute-c.png",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "341x320 per pose (all poses of a creature share one canvas)",
+        "alpha": true,
+        "poses": 3
+      },
+      "visual_locks": [
+        "palette",
+        "ink-outline",
+        "light-direction",
+        "camera",
+        "silhouette-aspect"
+      ],
+      "source": {
+        "kind": "generated",
+        "tool": "gpt-image-2.5-flare (Images API, edits, referenced to the seed)",
+        "created_at": "2026-09-19",
+        "raw_source": "art/raw/medieval-brute.png, art/raw/medieval-brute-strip.png",
+        "prompt_record": "art/specs/17-medieval-cast.json, art/specs/19-medieval-cast-strips.json",
+        "style_pass": "Q-style chibi, medieval",
+        "rejected_attempt": "the first strip attempt had the left two figures touching, which breaks the gutter slice; re-briefed with an explicit no-touching requirement"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "qa": "asset_report.py ok, no problems"
+      },
+      "measurements": {
+        "bytes": [
+          197079,
+          176613,
+          201913
+        ]
+      }
+    },
+    {
+      "id": "prop-brazier",
+      "role": "prop - iron fire basket on a rough stone base",
+      "path": "assets/brazier.png",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "252x320 per pose (all poses of a creature share one canvas)",
+        "alpha": true,
+        "note": "render.js draws this with drawImage(bowl, x, y, w, h), forcing both dimensions, so the canvas aspect must equal the box aspect or the art is squashed. The normalizer pads with transparency to reach it rather than rescaling."
+      },
+      "visual_locks": [
+        "palette",
+        "ink-outline",
+        "light-source-is-the-prop"
+      ],
+      "source": {
+        "kind": "generated",
+        "tool": "gpt-image-2.5-flare (Images API, edits, referenced to the seed)",
+        "created_at": "2026-09-19",
+        "raw_source": "art/raw/medieval-brazier.png",
+        "prompt_record": "art/specs/17-medieval-cast.json",
+        "style_pass": "Q-style chibi, medieval"
+      },
+      "verification": {
+        "native_scale_reviewed": true,
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "qa": "asset_report.py ok, no problems"
+      },
+      "measurements": {
+        "bytes": 114194
+      }
+    },
+    {
+      "id": "music-theme",
+      "role": "background music, 95 s loop",
+      "path": "assets/bgm.mp3",
+      "status": "shipped",
+      "technical": {
+        "dimensions": "110.26 s seamless loop, 48 kHz stereo, 192 kbps MP3",
+        "alpha": false
+      },
+      "visual_locks": [],
+      "source": {
+        "kind": "generated",
+        "tool": "MiniMax Music 3 on the workshop ComfyUI (NUC)",
+        "created_at": "2026-09-19",
+        "raw_source": "art/raw/qstyle-bgm-render.mp3 (113.26 s linear render)",
+        "prompt_record": "art/specs/15-bgm-final.json; first attempt art/specs/14-bgm-attempt1.json",
+        "derivation": "trimmed, crossfaded into a seamless loop and two-pass loudnorm to -16 LUFS by tools/make-bgm-loop.py",
+        "loop_record": "art/bgm-loop.json",
+        "rejected_attempt": "The first attempt (max_duration 96 s, empty lyrics) came back at 16.8 s: with no structure the model produced one short idea. Section tags with no words gave it an arrangement to follow and it rendered 113 s.",
+        "license_name_and_version": "see the MiniMax Music 3 model licence \u2014 not reviewed",
+        "restrictions_known": "unverified"
+      },
+      "verification": {
+        "in_engine_reviewed": true,
+        "technical_checks_passed": true,
+        "qa": "decodes at 110.26 s / 48 kHz / stereo, loops, honours mute (browser check)",
+        "approved_by": ""
+      },
+      "measurements": {
+        "loop_seconds": 110.263,
+        "crossfade_seconds": 3.0,
+        "seam_jump": 0.014374,
+        "mean_step": 0.020587,
+        "integrated_lufs": -16.2,
+        "true_peak_db": -1.1,
+        "bytes": 2648232
+      },
+      "note": "Instrumental, so nothing competes with the spell cues. The loop is seamless by construction, and verified: the jump at the wrap (0.0144) is SMALLER than the average sample-to-sample step inside the track (0.0206), so it cannot click. The previous track had a hard loop point. Loudness and true-peak limiting are measured on the shipped file, not assumed."
+    }
+  ],
+  "style_pass": {
+    "current": "Q-style / super-deformed chibi, MEDIEVAL setting",
+    "revised_at": "2026-09-19",
+    "supersedes": "Q-style chibi in a bright Japanese-cartoon register",
+    "note": "Proportions are unchanged from the previous pass - the same 2.5-head chibi - while the costume, world, palette and UI register moved to a medieval European one. All three passes are kept in art/raw (raw-*, qstyle-*, medieval-*); art/ is 42 MB, which is the cost of being able to re-derive any of them.",
+    "art_version": 3
+  },
+  "splash": {
+    "path": "assets/splash.webp",
+    "role": "boot screen key art; first thing on screen, and the loading screen",
+    "source": "art/raw/medieval-splash.png",
+    "prompt_record": "art/specs/21-medieval-splash.json",
+    "derivation": "centre-cropped 3:2 to 16:9, resized to 1920x1080, scrims for the logo and prompt BAKED IN by tools/prepare-splash.py, encoded WebP",
+    "verification": {
+      "native_scale_reviewed": true,
+      "in_engine_reviewed": true,
+      "qa": "asset_report.py ok, no problems"
+    },
+    "measurements": {
+      "dimensions": "1920x1080",
+      "bytes": 309588
+    }
+  }
+}

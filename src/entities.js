@@ -33,6 +33,20 @@ export function makePlayer(x, y) {
     flash: 0,
     hurt: 0,
     healing: 0,
+    /** Strides travelled, and the velocity the walk cycle leans into. */
+    gait: 0,
+    vxNow: 0,
+    vyNow: 0,
+    speedNow: 0,
+    /**
+     * Which way this actor last faced, as -1 or +1.
+     *
+     * The art is drawn facing LEFT when unflipped, so the renderer mirrors it to
+     * face right. This field exists because a creature standing still still has
+     * to face somewhere: without it, every stop snapped back to the unflipped
+     * art and the wizard span round the moment you let go of the stick.
+     */
+    faceX: 1,
   };
 }
 
@@ -63,6 +77,43 @@ export function makeEnemy(type, x, y, rng = Math.random) {
     hitFlash: 0,
     spawnT: 0.45,
     bob: rng() * Math.PI * 2,
+    /**
+     * Gait: how far this creature has actually travelled, in "strides". The
+     * renderer drives the walk cycle off this rather than off a clock, because
+     * a clock cannot tell walking from being shoved - and a creature that steps
+     * at a fixed rate while sliding across the floor is exactly what makes
+     * movement read as ice-skating. `bob` stays for the idle animation.
+     */
+    gait: rng() * Math.PI * 2,
+    /** Measured last-frame velocity, so the renderer can lean into the move. */
+    vxNow: 0,
+    vyNow: 0,
+    speedNow: 0,
+    /** Which way this actor last faced, as -1 or +1. See makePlayer. */
+    faceX: 1,
+  };
+}
+
+/**
+ * A mark left on the arena floor: scorch from an explosion, frost from a freeze.
+ *
+ * Purely cosmetic and deliberately inert - it carries no damage, no slow and no
+ * collision, so an after-effect can never quietly become a balance change. The
+ * simulation only ages and culls them.
+ */
+export function makeDecal(x, y, opts = {}) {
+  return {
+    id: newId(),
+    kind: opts.kind ?? 'scorch',
+    x,
+    y,
+    r: opts.r ?? 90,
+    ttl: opts.ttl ?? 6,
+    maxTtl: opts.ttl ?? 6,
+    color: opts.color ?? '#ffb03d',
+    rot: opts.rot ?? 0,
+    /** Seeded per decal so its irregular edge and flicker never animate. */
+    seed: opts.seed ?? 0,
   };
 }
 
@@ -128,6 +179,8 @@ export function makeRing(x, y, spec, color, kind = 'frost') {
     maxTtl: spec.ttl ?? 1.0,
     hit: new Set(),
     color,
+    /** Random phase so repeated impacts do not land on the same star rotation. */
+    seedAngle: Math.random() * Math.PI * 2,
   };
 }
 
@@ -180,9 +233,31 @@ export function circleOverlap(ax, ay, ar, bx, by, br) {
   return dx * dx + dy * dy <= rr * rr;
 }
 
+/**
+ * A right-angled distance, as `sqrt(dx*dx + dy*dy)`.
+ *
+ * Deliberately NOT `Math.hypot`. `hypot` is correctly rounded and guards against
+ * overflow, and this game needs neither: coordinates are arena-sized, so nothing
+ * is ever near the overflow point. What it does cost is agreement. The two forms
+ * disagree on about 40% of realistic inputs by up to 1e-13, and that is enough to
+ * move an enemy a hair differently each frame until a threshold comparison lands
+ * one frame early - which turns "the Godot port reproduces the simulation
+ * exactly" into "the port is usually close". Same arithmetic in both languages is
+ * worth more here than a marginally better-rounded number, and the explicit form
+ * is several times faster anyway.
+ *
+ * The port in ../rune-pressure-godot uses `sqrt(dx*dx + dy*dy)` for the same
+ * reason, and `test_traces.gd` is what holds the two to it.
+ */
+export function dist2(ax, ay, bx, by) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
 /** Normalise a vector; returns [x, y, length]. */
 export function norm2(x, y) {
-  const len = Math.hypot(x, y);
+  const len = Math.sqrt(x * x + y * y);
   if (len === 0) return [0, 0, 0];
   return [x / len, y / len, len];
 }

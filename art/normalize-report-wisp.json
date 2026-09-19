@@ -1,0 +1,38 @@
+{
+  "canvas": [
+    398,
+    320
+  ],
+  "anchor": "mass",
+  "body_h": 300,
+  "body_frac": 0.9375,
+  "top_y": 16,
+  "ground_y": 316,
+  "frames": {
+    "wisp": {
+      "source_columns": [
+        0,
+        1023
+      ],
+      "source_content_x": [
+        15,
+        1001
+      ],
+      "source_body_h": 767,
+      "scale": 0.391134,
+      "placement": [
+        3,
+        -34
+      ],
+      "content_y": [
+        17,
+        317
+      ],
+      "bytes": 118590,
+      "canvas": [
+        398,
+        320
+      ]
+    }
+  }
+}

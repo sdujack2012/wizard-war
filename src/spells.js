@@ -1,7 +1,8 @@
 /**
  * RUNE PRESSURE - the element wheel and the spell recipes.
  *
- * Pure data + pure functions. No DOM, no imports: loadable in Node for tests.
+ * Pure data + pure functions, plus the balance table in config.js. No DOM:
+ * loadable in Node for tests.
  *
  * ── The mechanism ───────────────────────────────────────────────────────────
  * Five circles on the right-hand control:
@@ -11,7 +12,8 @@
  *        EARTH
  *
  * Tapping the centre circle fires SPARK: a weak, auto-aimed shot that always
- * works and needs no knowledge. Cheap, reliable, small.
+ * works and needs no knowledge. Cheap, reliable, small. HOLDING it winds a
+ * heavier shot up, released on lift, scaling with how long you held.
  *
  * Tapping the four outer circles in a specific ORDER casts a spell. That is the
  * whole puzzle: the recipes must be recalled and executed while enemies close
@@ -34,37 +36,40 @@
  * water + wind + earth for the deep freeze.
  */
 
+import { CHARGE } from './config.js';
+
+
 /** The four outer circles, clockwise from the top. */
 export const ELEMENTS = [
   {
     id: 'fire',
     name: 'FIRE',
-    color: '#ff6b35',
-    glow: '#ffc2a3',
+    color: '#d9531e',
+    glow: '#f0b184',
     angle: -Math.PI / 2, // 12 o'clock
     blurb: 'Heat. Feeds destruction and mends flesh.',
   },
   {
     id: 'water',
     name: 'WATER',
-    color: '#3fa9f5',
-    glow: '#bfe6ff',
+    color: '#2f6fae',
+    glow: '#a8cfe6',
     angle: 0, // 3 o'clock
     blurb: 'Flow. Quenches, cleanses, and freezes.',
   },
   {
     id: 'earth',
     name: 'EARTH',
-    color: '#7bc96f',
-    glow: '#d6f5d0',
+    color: '#5f8a4a',
+    glow: '#bcd4a8',
     angle: Math.PI / 2, // 6 o'clock
     blurb: 'Weight. Gives a spell its mass.',
   },
   {
     id: 'wind',
     name: 'WIND',
-    color: '#b39ddb',
-    glow: '#e8ddff',
+    color: '#8f7bb5',
+    glow: '#d3c6e6',
     angle: Math.PI, // 9 o'clock
     blurb: 'Breath. Carries fire and carries cold.',
   },
@@ -88,7 +93,7 @@ export const SPELLS = [
     sequence: ['fire', 'fire', 'wind'],
     cost: 24,
     kind: 'fireball',
-    color: '#ff6b35',
+    color: '#d9531e',
     blurb: 'Wind-fed flame. Bursts on impact.',
   },
   {
@@ -97,7 +102,7 @@ export const SPELLS = [
     sequence: ['water', 'water', 'earth'],
     cost: 20,
     kind: 'waterball',
-    color: '#3fa9f5',
+    color: '#2f6fae',
     blurb: 'Heavy water. Hurts and drenches.',
   },
   {
@@ -106,7 +111,7 @@ export const SPELLS = [
     sequence: ['water', 'water', 'fire'],
     cost: 26,
     kind: 'heal',
-    color: '#7bd88f',
+    color: '#6fae63',
     blurb: 'Warm water. Closes your wounds.',
   },
   {
@@ -115,7 +120,7 @@ export const SPELLS = [
     sequence: ['earth', 'fire', 'water'],
     cost: 36,
     kind: 'explosion',
-    color: '#ffb03d',
+    color: '#e09a35',
     blurb: 'Steam and shrapnel. Erupts around you.',
   },
   {
@@ -124,7 +129,7 @@ export const SPELLS = [
     sequence: ['wind', 'water', 'earth'],
     cost: 30,
     kind: 'freeze',
-    color: '#8fe3ff',
+    color: '#9fd4e8',
     blurb: 'A cold wave. Everything nearby slows to a crawl.',
   },
 ];
@@ -140,7 +145,7 @@ export const FOCUS_SPELL = {
   sequence: [],
   cost: 8,
   kind: 'spark',
-  color: '#cfe6ff',
+  color: '#ece0c4',
   blurb: 'A weak dart. Always available.',
 };
 
@@ -257,6 +262,58 @@ export function spellSpec(id) {
     default:
       return null;
   }
+}
+
+/**
+ * ── The charged centre circle ───────────────────────────────────────────────
+ * `held` is seconds of real thumb-down time. The first `CHARGE.tapTime` of it
+ * is a tap and nothing else: below that, a charged shot IS a SPARK, so the
+ * panic button stays predictable. Past the threshold the wind-up ramps linearly
+ * to full over the remaining `CHARGE.time`.
+ *
+ * Returns 0..1, ready to hand to the functions below or draw as a ring.
+ */
+export function chargeLevel(held) {
+  const past = held - CHARGE.tapTime;
+  if (!(past > 0)) return 0;
+  const span = Math.max(1e-6, CHARGE.time - CHARGE.tapTime);
+  return past >= span ? 1 : past / span;
+}
+
+/**
+ * The spec a charged SPARK fires with. `t = 0` reproduces the plain SPARK
+ * exactly, so a tap is not a special case anywhere downstream - it is just
+ * charge 0, and every number here is interpolated from `spellSpec('spark')`.
+ */
+export function chargedSparkSpec(t) {
+  const base = spellSpec('spark');
+  const k = t <= 0 ? 0 : t >= 1 ? 1 : t;
+  if (k === 0) return base;
+  const lerp = (from, to) => from + (to - from) * k;
+  return {
+    ...base,
+    damage: lerp(base.damage, CHARGE.damage),
+    radius: lerp(base.radius, CHARGE.radius),
+    speed: lerp(base.speed, CHARGE.speed),
+    ttl: lerp(base.ttl, CHARGE.ttl),
+    // A shove, not a crowd-clearer: the charged shot is a lance, and recipes
+    // keep their monopoly on hitting more than one thing.
+    knockback: lerp(0, CHARGE.knockback),
+  };
+}
+
+/**
+ * What that shot costs. Rounded, because the HUD prints it and the mana pool is
+ * spent in whole points.
+ */
+export function chargedSparkCost(t) {
+  const k = t <= 0 ? 0 : t >= 1 ? 1 : t;
+  return Math.round(FOCUS_SPELL.cost + (CHARGE.cost - FOCUS_SPELL.cost) * k);
+}
+
+/** Damage per point of mana - the number that must never beat the recipes. */
+export function damagePerMana(spec, cost) {
+  return cost > 0 ? spec.damage / cost : Infinity;
 }
 
 /** Desktop key bindings for the four elements and the centre circle. */

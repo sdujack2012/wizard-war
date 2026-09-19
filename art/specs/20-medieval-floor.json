@@ -1,0 +1,9 @@
+[
+  {
+    "id": "medieval-floor",
+    "model": "gpt-image-2.5-flare",
+    "size": "1536x1024",
+    "out": "/tmp/medieval/raw-floor.png",
+    "prompt": "ROLE/PURPOSE: environment playfield for a fixed top-down arena game set in a MEDIEVAL castle courtyard; this is the background every character and projectile is read against.\nSUBJECT: an empty stone courtyard floor of worn medieval cobbles and flagstones, laid in a wide circular pattern around a carved heraldic roundel in the centre.\nVIEW: directly overhead, orthographic top-down, no perspective, no horizon.\nART DIRECTION: hand-painted storybook style. LOW CHROMA, muted warm grey-brown stone (value 68-80 percent, saturation under 15 percent). NO ink outlines on the stone, no black linework. Flat 2-tone shading only. The central roundel is a TONAL CARVED INLAY only - chiselled grooves, a simple heraldic device and a ring of small carved marks, roughly 8-14 percent darker than the surrounding stone, with NO glow, NO colour, NO light emission. The vivid saturated colour in this game belongs to the characters and spells drawn on top, so the floor must NOT compete with them.\nGAME-SCALE READ: at 1280x720 this whole image sits behind 45-85 pixel tall characters. It must read as quiet, even, walkable ground. It must NOT draw the eye.\nTECHNICAL OUTPUT: 3:2 landscape, opaque, edge-to-edge surface, no transparency.\nLOCKS: muted warm grey and brown stone, a little moss in the seams, flat even lighting from upper-left, no hotspots, concentric layout centred in frame.\nEXCLUDE: glowing lines, neon runes, luminous sigils, gemstones, torches, fire, any light source, any character or creature, strong cast shadows, high-contrast cracks, straw, barrels, banners standing on the ground, text, labels, UI, borders, frames, vignette."
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "qstyle-shade-strip",
+    "ref": "/tmp/qstyle/raw-shade.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/qstyle/raw-shade-strip.png",
+    "prompt": "Image 1: a Q-style super-deformed chibi wraith about as wide as it is tall - one big round head in a floppy dark crimson hood with two big glowing pale eyes and a tiny fanged grin, short stubby arms with chunky claw hands held out to the sides, and a small tattered ghost hem tapering to a floating point with no legs or feet. Thick dark ink outline, flat 2-tone cel shading, single upper-left key light, fixed three-quarter top-down view.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same creature, showing three animation frames in a single row, left to right, evenly spaced, all three the SAME height, the SAME width, the SAME chibi proportions, the SAME camera angle, hovering on the SAME invisible baseline, with clear empty gaps between them so each frame can be cut out. It has no legs, so this is a hover cycle, not a walk. Frame 1 (left): neutral hover, exactly like Image 1. Frame 2 (middle): the stubby arms swung UP and outward, the tattered hem streaming to one side, the whole body bounced slightly taller. Frame 3 (right): the stubby arms swung DOWN and inward, the hem streaming to the other side, the whole body squashed slightly shorter and wider.\n\nKeep identical: the crimson and burgundy colours, the bone-white trim, the glowing eyes, the thick ink outline weight, the flat cel shading, the single upper-left key light, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  },
+  {
+    "id": "qstyle-brute-strip",
+    "ref": "/tmp/qstyle/raw-brute.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/qstyle/raw-brute-strip.png",
+    "prompt": "Image 1: a Q-style super-deformed chibi heavy brute - a chunky squat armoured ogre with a big round barrel body in overlapping scorched orange-bronze plates over grey stone, a small grumpy head with two little tusks sunk between two enormous rounded shoulder plates, huge chunky fists, and two very short stubby legs with big flat feet. Thick dark ink outline, flat 2-tone cel shading, single upper-left key light, fixed three-quarter top-down view.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same creature, showing a three-frame heavy waddle walk cycle in a single row, left to right, evenly spaced, all three the SAME height, the SAME width, the SAME chibi proportions, the SAME camera angle, standing on the SAME invisible baseline, with clear empty gaps between them so each frame can be cut out. Frame 1 (left): neutral contact pose, both feet planted wide, exactly like Image 1. Frame 2 (middle): mid-step with the LEFT stubby leg lifted and swung forward, the body rolling onto the right leg, the whole body tilted and bounced slightly taller. Frame 3 (right): mid-step with the RIGHT stubby leg lifted and swung forward, the body rolling onto the left leg, tilted the other way and squashed slightly shorter and wider.\n\nKeep identical: the orange-bronze armour, the grey stone, the riveted plates, the small tusked head, the enormous shoulders, the thick ink outline weight, the flat cel shading, the single upper-left key light, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  }
+]

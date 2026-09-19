@@ -39,6 +39,8 @@ import { HAPTICS } from './config.js';
 export const EVENT_CUE = {
   element: 'tick',
   spark: 'spark',
+  'charge-start': 'chargeStart',
+  'charge-full': 'chargeFull',
   'sequence-break': 'break',
   fizzle: 'fizzle',
   kill: 'kill',

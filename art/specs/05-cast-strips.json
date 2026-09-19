@@ -1,0 +1,18 @@
+[
+  {
+    "id": "shade-walk-strip",
+    "ref": "/tmp/art3/raw-shade.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/art3/raw-shade-strip.png",
+    "prompt": "Image 1: an anime cel-shaded crimson hooded wraith that tapers to a point where legs would be, with a 2px dark indigo ink outline, flat cel shading and a single upper-left key light.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same creature, showing three animation frames in a single row, left to right, evenly spaced, all three figures the SAME height, the SAME scale, the SAME camera angle, hovering on the SAME invisible baseline, with clear empty gaps between them so each frame can be cut out. It has no legs, so this is a hover cycle, not a walk. Frame 1 (left): neutral hover, exactly like Image 1. Frame 2 (middle): the tattered hem streaming to the left, the arms drawn in closer to the body, the whole shape stretched slightly taller. Frame 3 (right): the tattered hem streaming to the right, the clawed arms opened wider and lower, the whole shape compressed slightly shorter and wider.\n\nKeep identical: the crimson and burgundy colours, the bone-white trim, the glowing eyes, the 2px ink outline weight, the flat cel shading, the single upper-left key light, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  },
+  {
+    "id": "brute-walk-strip",
+    "ref": "/tmp/art3/raw-brute.png",
+    "model": "gpt-image-2.5-flare",
+    "size": "1024x1024",
+    "out": "/tmp/art3/raw-brute-strip.png",
+    "prompt": "Image 1: an anime cel-shaded hulking armoured ogre-golem in scorched orange-bronze plates over grey stone, with a 2px dark indigo ink outline, flat cel shading and a single upper-left key light.\n\nInstruction: Draw ONE horizontal sprite strip of this EXACT same creature, showing a three-frame heavy walk cycle in a single row, left to right, evenly spaced, all three figures the SAME height, the SAME scale, the SAME camera angle, standing on the SAME invisible baseline, with clear empty gaps between them so each frame can be cut out. Frame 1 (left): neutral contact pose, both feet planted wide, exactly like Image 1. Frame 2 (middle): mid-stride, the left leg lifted and swung forward, the body rolling onto the right leg, the shoulders dipping. Frame 3 (right): mid-stride, the right leg lifted and swung forward, the body rolling onto the left leg, the opposite shoulder dipping.\n\nKeep identical: the orange-bronze armour, the grey stone, the heavy riveted plates, the small tusked head, the enormous shoulders, the 2px ink outline weight, the flat cel shading, the single upper-left key light, and the transparent background. No ground, no shadows, no frame borders, no numbers, no labels, no text."
+  }
+]

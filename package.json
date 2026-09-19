@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node serve.mjs",
     "dev": "node serve.mjs 5173 --host",
-    "test": "node --test --test-isolation=none test/spells.test.mjs test/sprites.test.mjs test/haptics.test.mjs test/game.test.mjs test/browser.test.mjs test/legacy-glyph.test.mjs"
+    "test": "node --test --test-isolation=none test/spells.test.mjs test/audio.test.mjs test/sprites.test.mjs test/haptics.test.mjs test/game.test.mjs test/browser.test.mjs test/assets.test.mjs test/legacy-glyph.test.mjs"
   },
   "engines": {
     "node": ">=18"

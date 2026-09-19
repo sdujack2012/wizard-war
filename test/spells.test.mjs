@@ -16,6 +16,10 @@ import {
   MAX_SEQUENCE,
   SPELLS,
   SPELL_BY_ID,
+  chargeLevel,
+  chargedSparkCost,
+  chargedSparkSpec,
+  damagePerMana,
   formatSequence,
   isLivePrefix,
   matchSequence,
@@ -23,7 +27,7 @@ import {
   roleOf,
   spellSpec,
 } from '../src/spells.js';
-import { PLAYER } from '../src/config.js';
+import { CHARGE, PLAYER } from '../src/config.js';
 
 const seq = (id) => SPELL_BY_ID[id].sequence;
 
@@ -235,4 +239,61 @@ test('every spell has a spec with the numbers the simulation needs', () => {
   assert.ok(SPELL_BY_ID.explosion.cost > SPELL_BY_ID.waterball.cost);
   assert.ok(dmg('explosion') > dmg('waterball'));
   assert.ok(dmg('fireball') > dmg('spark'));
+});
+
+// ── the charged centre circle ────────────────────────────────────────────────
+
+test('a hold inside the tap threshold is a plain SPARK, to the point', () => {
+  // The centre circle is the panic button. If a hurried press cost or dealt
+  // something different from a deliberate one, it would stop being one.
+  for (const held of [0, 0.02, CHARGE.tapTime]) {
+    assert.equal(chargeLevel(held), 0, `${held}s of hold was not read as a tap`);
+    assert.equal(chargedSparkCost(0), FOCUS_SPELL.cost);
+  }
+  assert.deepEqual(chargedSparkSpec(0), spellSpec('spark'), 'charge 0 must BE the plain SPARK');
+});
+
+test('the wind-up ramps to full and then stops', () => {
+  assert.equal(chargeLevel(CHARGE.time + 5), 1, 'holding past full must not keep scaling');
+  assert.equal(chargedSparkCost(1), CHARGE.cost);
+
+  let last = -1;
+  for (const held of [0.2, 0.35, 0.5, 0.7, CHARGE.time]) {
+    const t = chargeLevel(held);
+    assert.ok(t > last, `charge did not grow at ${held}s (${t} <= ${last})`);
+    last = t;
+  }
+
+  const full = chargedSparkSpec(1);
+  const tap = spellSpec('spark');
+  assert.ok(full.damage > tap.damage * 4, 'a full charge should be a different class of shot, not a nudge');
+  for (const key of ['damage', 'radius', 'speed', 'ttl', 'knockback']) {
+    assert.ok(full[key] > (tap[key] ?? 0), `a full charge does not improve ${key}`);
+  }
+});
+
+test('no amount of holding makes SPARK efficient enough to replace the wheel', () => {
+  // The same invariant as the recipe tests above, extended to the charged shot:
+  // holding buys BURST, never efficiency. If a full charge ever returned more
+  // damage per point of mana than the damage recipes, "hold the centre circle
+  // forever" would become the optimal attack and the wheel would be decoration.
+  //
+  // Only the spells whose job IS damage are weighed: FREEZE pays for control and
+  // HEAL pays for health, so neither is a damage-per-mana yardstick.
+  const chargedEff = damagePerMana(chargedSparkSpec(1), chargedSparkCost(1));
+  const plainEff = damagePerMana(spellSpec('spark'), FOCUS_SPELL.cost);
+  assert.equal(chargedEff.toFixed(3), '0.739', 'the charged curve drifted off SPARK\'s own ratio');
+
+  for (const id of ['fireball', 'waterball', 'explosion']) {
+    const spell = SPELL_BY_ID[id];
+    const eff = damagePerMana(spellSpec(id), spell.cost);
+    assert.ok(
+      eff > chargedEff,
+      `${spell.name} (${eff.toFixed(3)}/mana) is no better than a fully charged SPARK (${chargedEff.toFixed(3)}/mana)`,
+    );
+  }
+  assert.ok(chargedEff <= plainEff + 1e-9, `charging made SPARK more efficient (${chargedEff} > ${plainEff})`);
+
+  // ...and it must still be affordable inside one mana bar, or it is a trap.
+  assert.ok(CHARGE.cost < PLAYER.maxMana, `a full charge costs more than a full bar (${CHARGE.cost})`);
 });

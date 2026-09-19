@@ -1,0 +1,65 @@
+{
+  "canvas": [
+    175,
+    320
+  ],
+  "body_h": 300,
+  "hood_top_y": 16,
+  "ground_y": 316,
+  "frames": {
+    "wizard": {
+      "source_columns": [
+        0,
+        1023
+      ],
+      "source_content_x": [
+        283,
+        684
+      ],
+      "canvas_placement_x": 3,
+      "scale": 0.364078,
+      "body_h_src": 824,
+      "content_y": [
+        9,
+        317
+      ],
+      "bytes": 76383
+    },
+    "wizard-b": {
+      "source_columns": [
+        701,
+        995
+      ],
+      "source_content_x": [
+        701,
+        995
+      ],
+      "canvas_placement_x": 8,
+      "scale": 0.513699,
+      "body_h_src": 584,
+      "content_y": [
+        14,
+        317
+      ],
+      "bytes": 77284
+    },
+    "wizard-c": {
+      "source_columns": [
+        360,
+        636
+      ],
+      "source_content_x": [
+        360,
+        636
+      ],
+      "canvas_placement_x": 16,
+      "scale": 0.515464,
+      "body_h_src": 582,
+      "content_y": [
+        13,
+        317
+      ],
+      "bytes": 76261
+    }
+  }
+}

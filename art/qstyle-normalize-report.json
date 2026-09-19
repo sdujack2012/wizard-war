@@ -1,0 +1,88 @@
+{
+  "canvas": [
+    332,
+    320
+  ],
+  "anchor": "head",
+  "body_h": 300,
+  "body_frac": 0.9375,
+  "top_y": 16,
+  "ground_y": 316,
+  "frames": {
+    "wizard": {
+      "source_columns": [
+        0,
+        1023
+      ],
+      "source_content_x": [
+        126,
+        916
+      ],
+      "source_body_h": 887,
+      "scale": 0.338219,
+      "placement": [
+        3,
+        -7
+      ],
+      "content_y": [
+        16,
+        316
+      ],
+      "bytes": 120646,
+      "canvas": [
+        332,
+        320
+      ]
+    },
+    "wizard-b": {
+      "source_columns": [
+        353,
+        681
+      ],
+      "source_content_x": [
+        353,
+        681
+      ],
+      "source_body_h": 390,
+      "scale": 0.769231,
+      "placement": [
+        20,
+        -220
+      ],
+      "content_y": [
+        14,
+        317
+      ],
+      "bytes": 130037,
+      "canvas": [
+        332,
+        320
+      ]
+    },
+    "wizard-c": {
+      "source_columns": [
+        697,
+        1022
+      ],
+      "source_content_x": [
+        697,
+        1022
+      ],
+      "source_body_h": 380,
+      "scale": 0.789474,
+      "placement": [
+        15,
+        -244
+      ],
+      "content_y": [
+        14,
+        317
+      ],
+      "bytes": 130961,
+      "canvas": [
+        332,
+        320
+      ]
+    }
+  }
+}
