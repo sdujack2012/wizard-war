@@ -125,7 +125,12 @@ function describeGesture(sequence) {
 }
 
 function setFont(ctx, size, weight = 600) {
-  ctx.font = `${weight} ${size}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
+  // Rounded to a whole pixel on purpose. A font size below a pixel is meaningless to
+  // a rasteriser, and a fractional one puts a FLOAT into the font string - the Godot
+  // port cannot reproduce JavaScript's shortest-round-trip double formatting
+  // ("14.320151999999998px" against "14.320152px"), which would make a recorded style
+  // uncomparable across the two languages for no benefit at all.
+  ctx.font = `${weight} ${Math.round(size)}px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`;
 }
 
 function clamp(v, lo, hi) {
