@@ -1918,7 +1918,10 @@ export class Renderer {
     const TAU = Math.PI * 2;
     const dx = stick.x - stick.ox;
     const dy = stick.y - stick.oy;
-    const d = Math.hypot(dx, dy);
+    // Explicit sqrt rather than Math.hypot, the same convention as the simulation
+    // path: the Godot port shares this primitive and hypot's extra precision is not
+    // reproducible across the two runtimes.
+    const d = Math.sqrt(dx * dx + dy * dy);
     const k = d > stick.radius ? stick.radius / d : 1;
     const mag = stick.magnitude ?? 0;
     const moving = mag > 0.01;
